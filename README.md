@@ -1,130 +1,158 @@
-# Nomu-Back
+# Nomu-Back - API Backend avec PostgreSQL et Meilisearch
 
-Backend API avec Express.js, PostgreSQL 16, et MeiliSearch.
+Backend Node.js pour l'application Nomu, utilisant PostgreSQL pour la base de données et Meilisearch pour la recherche avancée avec IA.
 
-## 🚀 Installation rapide
+## 🚀 Technologies
 
-### 1. Cloner le projet
+- **Express.js** - Framework web
+- **PostgreSQL** - Base de données relationnelle
+- **Sequelize** - ORM pour PostgreSQL
+- **Meilisearch** - Moteur de recherche avec support IA
+- **OpenAI Embeddings** - Recherche sémantique
+- **Docker** - Containerisation
+
+## 📦 Installation
+
+### Prérequis
+- Node.js v20+
+- Docker et Docker Compose
+- Une clé API OpenAI (pour la recherche sémantique)
+
+### Configuration
+
+1. Cloner le projet
 ```bash
-git clone https://github.com/Crmy7/Nomu-Back.git
+git clone <repo-url>
+cd Nomu-Back
 ```
 
-### 2. Configurer les variables d'environnement
-```bash
-cp .env.example .env
+2. Créer un fichier `.env` à la racine :
+```env
+# Port de l'application
+PORT=3001
+
+# Configuration PostgreSQL
+DB_NAME=nomu_db
+DB_USER=nomu_user
+DB_PASSWORD=nomu_password
+DB_HOST=postgres
+
+# Configuration Meilisearch
+MEILI_HOST=http://meilisearch:7700
+MEILI_API_KEY=votre_cle_master
+MEILI_MASTER_KEY=votre_cle_master
+
+# OpenAI pour recherche sémantique
+OPENAI_API_KEY=sk-votre-cle-openai
 ```
 
-Éditez le fichier `.env` avec vos valeurs
-
-### 3. Lancer le projet avec Docker
-```bash
-docker-compose up -d --build
-```
-
-## 🐳 Commandes Docker
-
-### Démarrer les conteneurs
+3. Lancer avec Docker Compose
 ```bash
 docker-compose up -d
 ```
 
-### Démarrer avec reconstruction des images
-```bash
-docker-compose up -d --build
+## 🗄️ Structure du Projet
+
+```
+app/
+├── config/
+│   ├── database.js       # Configuration Sequelize PostgreSQL
+│   └── meilisearch.js    # Configuration Meilisearch
+├── models/
+│   ├── User.js           # Modèle Utilisateur
+│   ├── Profil.js         # Modèle Profil
+│   ├── Interet.js        # Modèle Intérêt
+│   └── index.js          # Relations et exports
+├── controllers/
+│   ├── usersController.js    # Contrôleur Users
+│   └── localsController.js   # Contrôleur Locals
+├── routes/
+│   ├── usersRoutes.js        # Routes Users
+│   └── localsRoutes.js       # Routes Locals
+├── services/
+│   ├── meiliUserService.js   # Service recherche Users
+│   └── meiliService.js       # Service recherche Locals
+├── scripts/
+│   ├── setupAIEmbedder.js    # Configuration embedder OpenAI
+│   └── enableVectorStore.js  # Activation vector store
+└── server.js             # Point d'entrée
 ```
 
-### Arrêter les conteneurs
+## 📡 API Endpoints
+
+### Users
+- `POST /users` - Créer un utilisateur
+- `GET /users/search?q=query&hybrid=true&semanticRatio=0.5` - Recherche hybride
+- `GET /users/semantic-search?q=query&limit=20` - Recherche sémantique pure
+
+### Locals
+- `GET /locals` - Récupérer tous les locaux
+- `POST /locals` - Ajouter des locaux
+- `GET /locals/search?q=query` - Rechercher des locaux
+
+## 🔧 Scripts NPM
+
 ```bash
-docker-compose down
+# Démarrer l'application
+npm start
+
+# Activer le vector store de Meilisearch
+npm run enable-vector
+
+# Configurer l'embedder OpenAI
+npm run setup-ai
 ```
 
-### Arrêter et supprimer les volumes (⚠️ supprime les données)
+## 🐳 Services Docker
+
+- **API Express** : Port 3001
+- **PostgreSQL** : Port 5432
+- **Meilisearch** : Port 7700
+- **Adminer** (interface DB) : Port 8080
+
+## 🔍 Configuration Meilisearch
+
+Après le premier lancement, configurer la recherche IA :
+
 ```bash
-docker-compose down -v
+# 1. Activer le vector store
+npm run enable-vector
+
+# 2. Configurer l'embedder OpenAI (si nécessaire)
+npm run setup-ai
 ```
 
-### Voir les logs
-```bash
-# Tous les services
-docker-compose logs -f
+## 🗂️ Modèles de Données
 
-# Un service spécifique
-docker-compose logs -f api
-docker-compose logs -f postgres
-```
+### User
+- id, name, email, password, role, actif, bio, location
 
-### Redémarrer un service
-```bash
-docker-compose restart api
-docker-compose restart postgres
-```
+### Profil
+- ID, Lastname, Firstname, Age, Biography, Country, City, ImgUrl
+- Relations : belongsTo User, belongsToMany Interet
 
-### Voir l'état des conteneurs
-```bash
-docker-compose ps
-```
+### Interet
+- ID, Name, Icon, Actif
+- Relations : belongsToMany Profil
 
-### Accéder au shell d'un conteneur
-```bash
-# API
-docker exec -it express-api sh
+## 📝 Notes
 
-# PostgreSQL
-docker exec -it postgres-nomu psql -U nomu_user -d nomu_db
-```
+- La base de données se synchronise automatiquement au démarrage (`alter: true`)
+- Les utilisateurs sont automatiquement indexés dans Meilisearch lors de la création
+- La recherche hybride combine recherche textuelle et sémantique
+- Adminer est accessible sur http://localhost:8080 pour gérer PostgreSQL
 
-## 🌐 Accès aux services
+## 🛠️ Développement
 
-Une fois lancé, accédez à :
-
-- **API** : http://localhost:3001
-- **Adminer** (interface PostgreSQL) : http://localhost:8080
-- **MeiliSearch** : http://localhost:7700
-
-### Connexion à Adminer
-
-Sur http://localhost:8080, connectez-vous avec :
-- **Système** : PostgreSQL
-- **Serveur** : `postgres`
-- **Utilisateur** : valeur de `DB_USER`
-- **Mot de passe** : valeur de `DB_PASSWORD`
-- **Base de données** : valeur de `DB_NAME`
-
-## 📦 Stack Technique
-
-- **Node.js 20** - Runtime
-- **Express.js** - Framework web
-- **PostgreSQL 16** - Base de données
-- **Sequelize** - ORM
-- **MeiliSearch 1.7** - Moteur de recherche
-- **Adminer** - Interface d'administration PostgreSQL
-- **Docker & Docker Compose** - Conteneurisation
-
-## 🔧 Développement local (sans Docker)
+Pour développer en local :
 
 ```bash
 # Installer les dépendances
 npm install
 
-# Lancer le serveur
+# Démarrer les services (DB + Meilisearch)
+docker-compose up -d postgres meilisearch
+
+# Démarrer l'API en local
 npm start
-
-# Mode développement
-npm run dev
-```
-
-⚠️ Nécessite PostgreSQL et MeiliSearch installés localement.
-
-## 📂 Structure
-
-```
-Nomu-Back/
-├── config/           # Configuration (database, etc.)
-├── data.ms/          # Données MeiliSearch
-├── logs/             # Logs de l'application
-├── docker-compose.yml
-├── Dockerfile
-├── index.js
-├── package.json
-└── .env.example
 ```

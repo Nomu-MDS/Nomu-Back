@@ -4,8 +4,10 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node app/server.js",
+    "dev": "node app/server.js",
+    "setup-ai": "node app/scripts/setupAIEmbedder.js",
+    "enable-vector": "node app/scripts/enableVectorStore.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,7 +17,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Crmy7/Nomu-Back/issues"
   },

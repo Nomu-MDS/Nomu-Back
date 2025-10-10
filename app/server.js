@@ -1,57 +1,133 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { sequelize, testConnection } = require('./config/database');
+// app/server.js
+import express from "express";
+import dotenv from "dotenv";
+import usersRoutes from "./routes/usersRoutes.js";
+import { sequelize, User } from "./models/index.js";
+import { indexUsers } from "./services/meiliUserService.js";
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Welcome to Nomu API',
-    database: 'PostgreSQL 16',
-    version: '1.0.0'
-  });
-});
+app.use("/users", usersRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    database: 'PostgreSQL',
-    uptime: process.uptime()
-  });
-});
+// Configuration automatique de Meilisearch Vector Store
+const setupMeilisearchAI = async () => {
+  const MEILI_HOST = process.env.MEILI_HOST || "http://localhost:7700";
+  const MEILI_API_KEY = process.env.MEILI_API_KEY;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// Fonction pour initialiser la base de données
-async function initializeDatabase() {
-  try {
-    await testConnection();
-    
-    await sequelize.sync({ alter: false });
-    console.log('✅ Modèles synchronisés avec PostgreSQL');
-  } catch (error) {
-    console.error('❌ Erreur lors de l\'initialisation de la base de données:', error);
-    process.exit(1);
+  if (!OPENAI_API_KEY) {
+    console.log("⚠️  OPENAI_API_KEY non configurée - recherche sémantique désactivée");
+    return;
   }
-}
 
-// Start server
-async function startServer() {
-  await initializeDatabase();
-  
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`📊 Database: PostgreSQL 16`);
-  });
-}
+  try {
+    // 1. Activer le vector store
+    console.log("🔧 Configuration Meilisearch AI...");
+    const vectorResponse = await fetch(`${MEILI_HOST}/experimental-features`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MEILI_API_KEY}`,
+      },
+      body: JSON.stringify({ vectorStore: true }),
+    });
 
-startServer();
+    if (!vectorResponse.ok) {
+      const error = await vectorResponse.text();
+      throw new Error(`Vector store: ${error}`);
+    }
 
-module.exports = app;
+    // 2. Configurer l'embedder OpenAI
+    const embedderConfig = {
+      "users-openai": {
+        source: "openAi",
+        apiKey: OPENAI_API_KEY,
+        model: "text-embedding-3-small",
+        documentTemplate:
+          "Utilisateur {{doc.name}}, role {{doc.role}}, bio: {{doc.bio}}, basé à {{doc.location}}",
+      },
+    };
+
+    const embedderResponse = await fetch(
+      `${MEILI_HOST}/indexes/users/settings/embedders`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MEILI_API_KEY}`,
+        },
+        body: JSON.stringify(embedderConfig),
+      }
+    );
+
+    if (!embedderResponse.ok) {
+      const error = await embedderResponse.text();
+      throw new Error(`Embedder: ${error}`);
+    }
+
+    console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
+  } catch (err) {
+    console.error("⚠️  Erreur configuration Meilisearch AI:", err.message);
+  }
+};
+
+const start = async () => {
+  try {
+    let connected = false;
+    let attempts = 0;
+
+    // Connexion à PostgreSQL avec retry
+    while (!connected && attempts < 10) {
+      try {
+        await sequelize.authenticate();
+        connected = true;
+      } catch (err) {
+        attempts++;
+        console.log(
+          `❌ DB connection failed (attempt ${attempts}/10): ${err.message}`
+        );
+        await new Promise((res) => setTimeout(res, 3000));
+      }
+    }
+
+    await sequelize.sync({ alter: true });
+    console.log("✅ DB synced");
+
+    // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre Meilisearch
+    await setupMeilisearchAI();
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
+
+    // Ré-indexer tous les utilisateurs dans Meilisearch au démarrage
+    try {
+      const users = await User.findAll();
+      if (users.length > 0) {
+        const usersData = users.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          location: user.location,
+          bio: user.bio,
+        }));
+        await indexUsers(usersData);
+        console.log(`✅ ${users.length} utilisateur(s) ré-indexé(s) dans Meilisearch`);
+      } else {
+        console.log("ℹ️  Aucun utilisateur à indexer");
+      }
+    } catch (err) {
+      console.error("⚠️  Erreur lors de la ré-indexation:", err.message);
+    }
+
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("Fatal error:", err);
+  }
+};
+
+start();
