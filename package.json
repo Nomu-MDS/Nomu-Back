@@ -1,0 +1,26 @@
+{
+  "name": "nomu-back",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crmy7/Nomu-Back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Crmy7/Nomu-Back/issues"
+  },
+  "homepage": "https://github.com/Crmy7/Nomu-Back#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
