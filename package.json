@@ -2,10 +2,10 @@
   "name": "nomu-back",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -21,6 +21,13 @@
   },
   "homepage": "https://github.com/Crmy7/Nomu-Back#readme",
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "body-parser": "^1.20.2",
+    "meilisearch": "^0.32.2",
+    "sequelize": "^6.37.1",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4"
   }
 }
