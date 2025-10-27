@@ -48,7 +48,7 @@ OPENAI_API_KEY=sk-votre-cle-openai
 
 3. Lancer avec Docker Compose
 ```bash
-docker-compose up -d
+docker compose up -d && docker compose logs -f api
 ```
 
 ## 🗄️ Structure du Projet
@@ -151,7 +151,7 @@ Pour développer en local :
 npm install
 
 # Démarrer les services (DB + Meilisearch)
-docker-compose up -d postgres meilisearch
+docker compose up -d && docker compose logs -f api
 
 # Démarrer l'API en local
 npm start
