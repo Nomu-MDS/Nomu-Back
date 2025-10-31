@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   meilisearch:
     image: getmeili/meilisearch:v1.7
@@ -27,9 +29,10 @@ services:
       - DB_HOST=${DB_HOST}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - .:/app
-      - /app/node_modules
+      - .:/app               # ⚡ ton code local est monté en direct
+      - /app/node_modules    # évite le conflit de dépendances
       - ./logs:/app/logs
+    command: nodemon app/server.js  # ⚡ redémarre à chaque changement
 
   postgres:
     image: postgres:16
