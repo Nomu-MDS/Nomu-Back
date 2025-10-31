@@ -1,5 +1,5 @@
-import { indexLocals, searchInLocals } from "../services/meiliService.js";
-import { meiliClient } from "../config/meilisearch.js";
+import { indexLocals, searchInLocals } from "../../services/meilisearch/meiliService.js";
+import { meiliClient } from "../../config/meilisearch.js";
 
 export const getLocals = async (req, res) => {
   try {

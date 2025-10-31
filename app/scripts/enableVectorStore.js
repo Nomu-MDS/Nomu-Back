@@ -34,12 +34,12 @@ async function enableVectorStore() {
     const result = await response.json();
     console.log("✅ Feature vector store activée!");
     console.log("📊 Réponse:", result);
-    
+
     console.log("\n⏳ Attends 2 secondes puis configure l'embedder...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     console.log("🔧 Configuration de l'embedder OpenAI...");
-    
+
     // Maintenant configurer l'embedder
     const embedderConfig = {
       "users-openai": {
@@ -71,7 +71,6 @@ async function enableVectorStore() {
     const embedderResult = await embedderResponse.json();
     console.log("✅ Embedder configuré avec succès!");
     console.log("📊 TaskUID:", embedderResult.taskUid);
-    
   } catch (err) {
     console.error("❌ Erreur:", err.message);
     process.exit(1);
@@ -79,4 +78,3 @@ async function enableVectorStore() {
 }
 
 enableVectorStore();
-

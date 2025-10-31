@@ -11,8 +11,8 @@ export default (sequelize) => {
     actif: { type: DataTypes.BOOLEAN, defaultValue: true },
     bio: { type: DataTypes.TEXT },
     location: { type: DataTypes.STRING },
+    firebaseUid: { type: DataTypes.STRING, allowNull: true, unique: true },
   });
 
   return User;
 };
-

@@ -1,15 +1,20 @@
 // app/server.js
 import express from "express";
 import dotenv from "dotenv";
-import usersRoutes from "./routes/usersRoutes.js";
+import usersRoutes from "./routes/auth/users.js";
+import authRoutes from "./routes/auth/index.js";
+import localsRoutes from "./routes/meilisearch/locals.js";
+import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User } from "./models/index.js";
-import { indexUsers } from "./services/meiliUserService.js";
+import { indexUsers } from "./services/meilisearch/meiliUserService.js";
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 
-app.use("/users", usersRoutes);
+app.use("/auth", authRoutes);
+app.use("/users", authenticateFirebase, usersRoutes);
+app.use("/locals", localsRoutes);
 
 // Configuration automatique de Meilisearch Vector Store
 const setupMeilisearchAI = async () => {
@@ -18,7 +23,9 @@ const setupMeilisearchAI = async () => {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
   if (!OPENAI_API_KEY) {
-    console.log("⚠️  OPENAI_API_KEY non configurée - recherche sémantique désactivée");
+    console.log(
+      "⚠️  OPENAI_API_KEY non configurée - recherche sémantique désactivée"
+    );
     return;
   }
 
@@ -96,15 +103,15 @@ const start = async () => {
     console.log("✅ DB synced");
 
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre Meilisearch
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre Meilisearch
     await setupMeilisearchAI();
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
     // Ré-indexer tous les utilisateurs dans Meilisearch au démarrage
     try {
       const users = await User.findAll();
       if (users.length > 0) {
-        const usersData = users.map(user => ({
+        const usersData = users.map((user) => ({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -113,7 +120,9 @@ const start = async () => {
           bio: user.bio,
         }));
         await indexUsers(usersData);
-        console.log(`✅ ${users.length} utilisateur(s) ré-indexé(s) dans Meilisearch`);
+        console.log(
+          `✅ ${users.length} utilisateur(s) ré-indexé(s) dans Meilisearch`
+        );
       } else {
         console.log("ℹ️  Aucun utilisateur à indexer");
       }

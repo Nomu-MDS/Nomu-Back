@@ -16,4 +16,3 @@ Profil.belongsToMany(Interet, { through: "ProfilInterets" });
 Interet.belongsToMany(Profil, { through: "ProfilInterets" });
 
 export { sequelize, User, Profil, Interet };
-
