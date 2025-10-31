@@ -46,4 +46,3 @@ export const searchInLocals = async (query) => {
     throw err;
   }
 };
-

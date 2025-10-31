@@ -1,16 +1,11 @@
-// routes/localsRoutes.js
+// Routes locaux
 import express from "express";
-import {
-  addLocals,
-  searchLocals,
-  getLocals,
-} from "../controllers/localsController.js";
+import { addLocals, getLocals, searchLocals } from "../../controllers/meilisearch/localsController.js";
 
 const router = express.Router();
 
-router.get("/", getLocals);
 router.post("/", addLocals);
+router.get("/", getLocals);
 router.get("/search", searchLocals);
 
 export default router;
-

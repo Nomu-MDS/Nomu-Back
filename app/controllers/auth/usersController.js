@@ -1,6 +1,6 @@
-// app/controllers/usersController.js
-import { User } from "../models/index.js";
-import { indexUsers, searchInUsers, semanticSearchUsers } from "../services/meiliUserService.js";
+// controllers/auth/usersController.js
+import { User } from "../../models/index.js";
+import { indexUsers, searchInUsers, semanticSearchUsers } from "../../services/meilisearch/meiliUserService.js";
 
 export const createUser = async (req, res) => {
   try {

@@ -53,7 +53,9 @@ async function setupEmbedder() {
     const result = await response.json();
     console.log("✅ Embedder configuré avec succès!");
     console.log("📊 TaskUID:", result.taskUid);
-    console.log("\n⏳ Attends quelques secondes que Meilisearch traite la tâche...");
+    console.log(
+      "\n⏳ Attends quelques secondes que Meilisearch traite la tâche..."
+    );
     console.log("👉 Vérifie l'état avec :");
     console.log(
       `   curl ${MEILI_HOST}/tasks/${result.taskUid} -H "Authorization: Bearer ${MEILI_API_KEY}"`
@@ -65,4 +67,3 @@ async function setupEmbedder() {
 }
 
 setupEmbedder();
-
