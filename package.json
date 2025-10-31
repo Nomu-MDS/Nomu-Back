@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node app/server.js",
-    "dev": "node app/server.js",
+    "dev": "nodemon app/server.js",
     "setup-ai": "node app/scripts/setupAIEmbedder.js",
     "enable-vector": "node app/scripts/enableVectorStore.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -34,5 +34,8 @@
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

@@ -14,11 +14,14 @@ router.post("/signup", async (req, res) => {
     // Hash du mot de passe avant stockage
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Création de l'utilisateur dans Firebase
     const userRecord = await admin.auth().createUser({
       email,
       password,
       displayName: name,
     });
+
+    // Création de l'utilisateur dans PostgreSQL
     const user = await User.create({
       name,
       email,
@@ -29,10 +32,21 @@ router.post("/signup", async (req, res) => {
       location,
       firebaseUid: userRecord.uid,
     });
+
+    // Génération d'un token Firebase
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
     res.status(201).json({ user, firebaseUid: userRecord.uid, firebaseToken: customToken });
   } catch (err) {
-    res.status(500).json({ error: "Erreur création utilisateur" });
+    if (err.code === "auth/email-already-exists") {
+      // Erreur Firebase : email déjà utilisé
+      res.status(400).json({ error: "Email already exists in Firebase." });
+    } else if (err.name === "SequelizeUniqueConstraintError") {
+      // Erreur PostgreSQL : email déjà utilisé
+      res.status(400).json({ error: "Email already exists in PostgreSQL." });
+    } else {
+      // Autres erreurs
+      res.status(500).json({ error: "Erreur création utilisateur." });
+    }
   }
 });
 

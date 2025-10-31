@@ -1,20 +1,20 @@
 # Utilise l'image officielle Node.js v20
 FROM node:20
 
-# Définit le répertoire de travail dans le conteneur
+# Répertoire de travail
 WORKDIR /app
 
 # Copie les fichiers de dépendances
 COPY package*.json ./
 
-# Installe les dépendances
-RUN npm install
+# Installe les dépendances + nodemon pour le dev
+RUN npm install && npm install -g nodemon
 
-# Copie le reste du code source dans le conteneur
+# Copie le reste du code
 COPY . .
 
-# Expose le port sur lequel l'app Express écoute
+# Expose le port de l'app
 EXPOSE 3001
 
-# Commande pour lancer le serveur (corrigée pour app/server.js)
-CMD ["node", "app/server.js"]
+# Lancer avec nodemon pour recharger automatiquement en dev
+CMD ["nodemon", "app/server.js"]
