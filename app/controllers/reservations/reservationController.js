@@ -80,6 +80,13 @@ export const createReservation = async (req, res) => {
         if (parsedEndDate <= parsedDate) {
             return res.status(400).json({ error: "La date de fin doit être postérieure à la date de début" });
         }
+        const now = new Date();
+        if (parsedDate < now) {
+            return res.status(400).json({ error: "La date de début doit être dans le futur" });
+        }
+        if (parsedEndDate < now) {
+            return res.status(400).json({ error: "La date de fin doit être dans le futur" });
+        }
 
         // Validation du prix
         if (parsedPrice <= 0) {
