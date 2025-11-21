@@ -1,6 +1,9 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
 
+// Configuration constants
+const MAX_MESSAGE_LENGTH = 10000;
+
 export const setupChatHandlers = (io, socket) => {
   console.log(`✅ User connected: ${socket.userId}`);
 
@@ -77,8 +80,8 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "Content must not be empty" });
       }
 
-      if (trimmedContent.length > 10000) {
-        return socket.emit("error", { message: "Content exceeds maximum length of 10000 characters" });
+      if (trimmedContent.length > MAX_MESSAGE_LENGTH) {
+        return socket.emit("error", { message: `Content exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` });
       }
 
       // Récupérer l'utilisateur
