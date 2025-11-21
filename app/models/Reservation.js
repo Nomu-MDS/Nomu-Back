@@ -13,7 +13,7 @@ export default (sequelize) => {
       allowNull: false
     },
     status: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM('pending', 'accepted', 'declined'),
       allowNull: false,
       defaultValue: 'pending'
     },
