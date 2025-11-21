@@ -4,6 +4,7 @@ import UserModel from "./User.js";
 import ProfilModel from "./Profil.js";
 import InteretModel from "./Interet.js";
 import ConversationModel from "./Conversation.js";
+import Reservation from "./Reservation.js";
 
 const User = UserModel(sequelize);
 const Profil = ProfilModel(sequelize);
@@ -23,4 +24,8 @@ User.hasMany(Conversation, { as: "ConversationsAsLocal", foreignKey: "localID" }
 Conversation.belongsTo(User, { as: "Voyager", foreignKey: "voyagerID" });
 Conversation.belongsTo(User, { as: "Local", foreignKey: "localID" });
 
-export { sequelize, User, Profil, Interet, Conversation };
+// Relations Reservation
+Conversation.hasMany(Reservation, { foreignKey: "conv_id" });
+Reservation.belongsTo(Conversation, { foreignKey: "conv_id" });
+
+export { sequelize, User, Profil, Interet, Conversation, Reservation };
