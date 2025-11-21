@@ -1,22 +1,43 @@
 // app/server.js
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import dotenv from "dotenv";
 import usersRoutes from "./routes/auth/users.js";
 import authRoutes from "./routes/auth/index.js";
 import localsRoutes from "./routes/meilisearch/locals.js";
 import reservationsRoutes from "./routes/reservations/index.js";
+import conversationsRoutes from "./routes/conversations/index.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User } from "./models/index.js";
 import { indexUsers } from "./services/meilisearch/meiliUserService.js";
+import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
+import { setupChatHandlers } from "./services/websocket/chatService.js";
 
 dotenv.config();
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST"],
+  },
+});
+
 app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/users", authenticateFirebase, usersRoutes);
 app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
+app.use("/conversations", authenticateFirebase, conversationsRoutes);
+
+// Configuration Socket.IO
+io.use(socketAuthMiddleware);
+
+io.on("connection", (socket) => {
+  setupChatHandlers(io, socket);
+});
 
 // Configuration automatique de Meilisearch Vector Store
 const setupMeilisearchAI = async () => {
@@ -133,8 +154,9 @@ const start = async () => {
     }
 
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`🔌 WebSocket server ready`);
     });
   } catch (err) {
     console.error("Fatal error:", err);
