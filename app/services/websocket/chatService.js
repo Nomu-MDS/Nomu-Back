@@ -1,6 +1,20 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
 
+// Allowed file extensions for attachments (excluding SVG for security)
+const ALLOWED_EXTENSIONS = [
+  // Images
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico',
+  // Documents
+  'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
+  // Audio
+  'mp3', 'wav', 'ogg', 'm4a', 'aac',
+  // Video
+  'mp4', 'webm', 'avi', 'mov', 'mkv',
+  // Archives
+  'zip', 'rar', '7z', 'tar', 'gz'
+];
+
 // Helper function to extract file extension from path or URL
 const extractFileExtension = (str) => {
   const match = str.match(/\.([^./?#]+)(?:[?#]|$)/);
@@ -23,20 +37,6 @@ const validateAttachment = (attachment) => {
   if (attachment.length > MAX_LENGTH) {
     return { valid: false, error: `Attachment URL/path exceeds maximum length of ${MAX_LENGTH} characters` };
   }
-
-  // Allowed file extensions for attachments (excluding SVG for security)
-  const ALLOWED_EXTENSIONS = [
-    // Images
-    'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico',
-    // Documents
-    'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
-    // Audio
-    'mp3', 'wav', 'ogg', 'm4a', 'aac',
-    // Video
-    'mp4', 'webm', 'avi', 'mov', 'mkv',
-    // Archives
-    'zip', 'rar', '7z', 'tar', 'gz'
-  ];
 
   // Try to validate as URL
   try {
@@ -74,7 +74,14 @@ const validateAttachment = (attachment) => {
 
     // Validate file path format (prevent directory traversal including encoded variants)
     const pathLower = attachment.toLowerCase();
-    const pathDecoded = decodeURIComponent(attachment).toLowerCase();
+    let pathDecoded;
+    
+    try {
+      pathDecoded = decodeURIComponent(attachment).toLowerCase();
+    } catch (e) {
+      // If decoding fails, treat as potentially malicious
+      return { valid: false, error: "Invalid attachment format" };
+    }
     
     if (pathLower.includes('../') || pathLower.includes('..\\') ||
         pathDecoded.includes('../') || pathDecoded.includes('..\\')) {
