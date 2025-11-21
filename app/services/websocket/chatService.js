@@ -1,6 +1,10 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
 
+// Constants for attachment validation
+const MAX_ATTACHMENT_LENGTH = 2048;
+const MAX_EXTENSION_LENGTH = 10;
+
 // Allowed file extensions for attachments (excluding SVG for security)
 const ALLOWED_EXTENSIONS = [
   // Images
@@ -18,7 +22,13 @@ const ALLOWED_EXTENSIONS = [
 // Helper function to extract file extension from path or URL
 const extractFileExtension = (str) => {
   const match = str.match(/\.([^./?#]+)(?:[?#]|$)/);
-  return match ? match[1].toLowerCase() : null;
+  if (!match) return null;
+  
+  const extension = match[1].toLowerCase();
+  // Prevent excessively long extensions
+  if (extension.length > MAX_EXTENSION_LENGTH) return null;
+  
+  return extension;
 };
 
 // Validation helper for attachment field
@@ -33,9 +43,8 @@ const validateAttachment = (attachment) => {
   }
 
   // Check maximum length to prevent abuse
-  const MAX_LENGTH = 2048;
-  if (attachment.length > MAX_LENGTH) {
-    return { valid: false, error: `Attachment URL/path exceeds maximum length of ${MAX_LENGTH} characters` };
+  if (attachment.length > MAX_ATTACHMENT_LENGTH) {
+    return { valid: false, error: `Attachment URL/path exceeds maximum length of ${MAX_ATTACHMENT_LENGTH} characters` };
   }
 
   // Try to validate as URL
@@ -52,7 +61,7 @@ const validateAttachment = (attachment) => {
     const extension = extractFileExtension(pathname);
     
     if (!extension) {
-      return { valid: false, error: "Attachment URL must include a file extension" };
+      return { valid: false, error: "Attachment URL must include a valid file extension" };
     }
 
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
@@ -78,14 +87,21 @@ const validateAttachment = (attachment) => {
     
     try {
       pathDecoded = decodeURIComponent(attachment).toLowerCase();
+      // Double decode to catch double-encoded attacks
+      const pathDoubleDecoded = decodeURIComponent(pathDecoded);
+      
+      // Check for directory traversal patterns in all variants
+      const traversalPatterns = ['../', '..\\'];
+      for (const pattern of traversalPatterns) {
+        if (pathLower.includes(pattern) || 
+            pathDecoded.includes(pattern) || 
+            pathDoubleDecoded.toLowerCase().includes(pattern)) {
+          return { valid: false, error: "Directory traversal is not allowed in file paths" };
+        }
+      }
     } catch (e) {
       // If decoding fails, treat as potentially malicious
       return { valid: false, error: "Invalid attachment format" };
-    }
-    
-    if (pathLower.includes('../') || pathLower.includes('..\\') ||
-        pathDecoded.includes('../') || pathDecoded.includes('..\\')) {
-      return { valid: false, error: "Directory traversal is not allowed in file paths" };
     }
 
     return { valid: true };
