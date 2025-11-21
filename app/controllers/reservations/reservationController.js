@@ -59,26 +59,30 @@ export const createReservation = async (req, res) => {
         const user = await getUserByFirebaseUid(req.user.uid);
 
         // Validate required fields
-        if (!title || !conv_id || price === undefined || !date || !end_date) {
+        if (!title || !conv_id || price == null || !date || !end_date) {
             return res.status(400).json({ error: "Tous les champs sont requis" });
         }
 
-        // Validate field types
-        if (typeof price !== 'number' || isNaN(price)) {
+        // Validate field types - parse price if it's a string
+        const parsedPrice = typeof price === 'string' ? Number(price) : price;
+        if (typeof parsedPrice !== 'number' || isNaN(parsedPrice)) {
             return res.status(400).json({ error: "Le prix doit être un nombre valide" });
         }
 
-        if (isNaN(Date.parse(date)) || isNaN(Date.parse(end_date))) {
+        // Validate dates are valid date strings
+        const parsedDate = new Date(date);
+        const parsedEndDate = new Date(end_date);
+        if (isNaN(parsedDate.getTime()) || isNaN(parsedEndDate.getTime())) {
             return res.status(400).json({ error: "Les dates doivent être valides" });
         }
 
         // Validation des dates
-        if (new Date(end_date) <= new Date(date)) {
+        if (parsedEndDate <= parsedDate) {
             return res.status(400).json({ error: "La date de fin doit être postérieure à la date de début" });
         }
 
         // Validation du prix
-        if (price <= 0) {
+        if (parsedPrice <= 0) {
             return res.status(400).json({ error: "Le prix doit être supérieur à zéro" });
         }
 
@@ -94,7 +98,7 @@ export const createReservation = async (req, res) => {
         const reservation = await Reservation.create({
             title,
             conv_id,
-            price,
+            price: parsedPrice,
             date,
             end_date,
             status: 'pending'
