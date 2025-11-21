@@ -1,4 +1,3 @@
-version: "3.9"
 
 services:
   meilisearch:
@@ -32,7 +31,7 @@ services:
       - .:/app               # ⚡ ton code local est monté en direct
       - /app/node_modules    # évite le conflit de dépendances
       - ./logs:/app/logs
-    command: nodemon app/server.js  # ⚡ redémarre à chaque changement
+    command: npm run dev  # ⚡ redémarre à chaque changement
 
   postgres:
     image: postgres:16
