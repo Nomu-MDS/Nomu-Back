@@ -17,11 +17,11 @@ export default (sequelize) => {
       allowNull: false,
       defaultValue: 'pending'
     },
-    conv_id: {
+    conversation_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Conversations',
+        model: 'conversations',
         key: 'id'
       },
       onUpdate: 'CASCADE',
@@ -41,7 +41,8 @@ export default (sequelize) => {
     }
   }, {
     tableName: 'reservations',
-    timestamps: true
+    timestamps: true,
+    underscored: true
   });
 
   return Reservation;
