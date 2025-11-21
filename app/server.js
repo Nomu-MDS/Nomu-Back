@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import usersRoutes from "./routes/auth/users.js";
 import authRoutes from "./routes/auth/index.js";
 import localsRoutes from "./routes/meilisearch/locals.js";
+import reservationsRoutes from "./routes/reservations/index.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User } from "./models/index.js";
 import { indexUsers } from "./services/meilisearch/meiliUserService.js";
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/users", authenticateFirebase, usersRoutes);
 app.use("/locals", localsRoutes);
+app.use("/reservations", reservationsRoutes);
 
 // Configuration automatique de Meilisearch Vector Store
 const setupMeilisearchAI = async () => {
