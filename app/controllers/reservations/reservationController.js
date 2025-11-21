@@ -58,6 +58,20 @@ export const createReservation = async (req, res) => {
         const { title, conv_id, price, date, end_date } = req.body;
         const user = await getUserByFirebaseUid(req.user.uid);
 
+        // Validate required fields
+        if (!title || !conv_id || price === undefined || !date || !end_date) {
+            return res.status(400).json({ error: "Tous les champs sont requis" });
+        }
+
+        // Validate field types
+        if (typeof price !== 'number' || isNaN(price)) {
+            return res.status(400).json({ error: "Le prix doit être un nombre valide" });
+        }
+
+        if (isNaN(Date.parse(date)) || isNaN(Date.parse(end_date))) {
+            return res.status(400).json({ error: "Les dates doivent être valides" });
+        }
+
         // Validation des dates
         if (new Date(end_date) <= new Date(date)) {
             return res.status(400).json({ error: "La date de fin doit être postérieure à la date de début" });
