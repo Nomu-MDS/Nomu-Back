@@ -101,8 +101,8 @@ export const setupChatHandlers = (io, socket) => {
         ],
       });
 
-      // Émettre le message à tous les participants de la conversation
-      io.to(`conversation_${convID}`).emit("new_message", {
+      // Émettre le message aux autres participants de la conversation
+      socket.broadcast.to(`conversation_${convID}`).emit("new_message", {
         message: fullMessage,
       });
 
