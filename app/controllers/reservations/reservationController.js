@@ -64,8 +64,8 @@ export const createReservation = async (req, res) => {
         }
 
         // Validation du prix
-        if (price < 0) {
-            return res.status(400).json({ error: "Le prix ne peut pas être négatif" });
+        if (price <= 0) {
+            return res.status(400).json({ error: "Le prix doit être supérieur à zéro" });
         }
 
         const conversation = await Conversation.findByPk(conv_id);
