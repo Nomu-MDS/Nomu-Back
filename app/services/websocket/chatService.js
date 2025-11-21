@@ -1,6 +1,12 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
 
+// Helper function to extract file extension from path or URL
+const extractFileExtension = (str) => {
+  const match = str.match(/\.([^./?#]+)(?:[?#]|$)/);
+  return match ? match[1].toLowerCase() : null;
+};
+
 // Validation helper for attachment field
 const validateAttachment = (attachment) => {
   if (!attachment) {
@@ -18,10 +24,10 @@ const validateAttachment = (attachment) => {
     return { valid: false, error: `Attachment URL/path exceeds maximum length of ${MAX_LENGTH} characters` };
   }
 
-  // Allowed file extensions for attachments
+  // Allowed file extensions for attachments (excluding SVG for security)
   const ALLOWED_EXTENSIONS = [
     // Images
-    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico',
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico',
     // Documents
     'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
     // Audio
@@ -41,33 +47,37 @@ const validateAttachment = (attachment) => {
       return { valid: false, error: "Only HTTP and HTTPS protocols are allowed" };
     }
 
-    // Extract file extension from URL pathname
+    // Extract and validate file extension from URL pathname
     const pathname = url.pathname;
-    const extensionMatch = pathname.match(/\.([^./?#]+)(?:[?#]|$)/);
+    const extension = extractFileExtension(pathname);
     
-    if (extensionMatch) {
-      const extension = extensionMatch[1].toLowerCase();
-      if (!ALLOWED_EXTENSIONS.includes(extension)) {
-        return { valid: false, error: `File type '.${extension}' is not allowed` };
-      }
+    if (!extension) {
+      return { valid: false, error: "Attachment URL must include a file extension" };
+    }
+
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      return { valid: false, error: `File type '.${extension}' is not allowed` };
     }
 
     return { valid: true };
   } catch (urlError) {
     // Not a valid URL, try to validate as file path
-    const fileExtensionMatch = attachment.match(/\.([^./?#]+)$/);
+    const extension = extractFileExtension(attachment);
     
-    if (!fileExtensionMatch) {
+    if (!extension) {
       return { valid: false, error: "Attachment must be a valid URL or file path with an extension" };
     }
 
-    const extension = fileExtensionMatch[1].toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
       return { valid: false, error: `File type '.${extension}' is not allowed` };
     }
 
-    // Validate file path format (prevent directory traversal)
-    if (attachment.includes('../') || attachment.includes('..\\')) {
+    // Validate file path format (prevent directory traversal including encoded variants)
+    const pathLower = attachment.toLowerCase();
+    const pathDecoded = decodeURIComponent(attachment).toLowerCase();
+    
+    if (pathLower.includes('../') || pathLower.includes('..\\') ||
+        pathDecoded.includes('../') || pathDecoded.includes('..\\')) {
       return { valid: false, error: "Directory traversal is not allowed in file paths" };
     }
 
