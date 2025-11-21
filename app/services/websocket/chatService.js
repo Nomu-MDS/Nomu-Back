@@ -63,12 +63,18 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "convID and content are required" });
       }
 
-      if (typeof content !== 'string' || content.trim().length === 0) {
-        return socket.emit("error", { message: "Content must be a non-empty string" });
+      if (typeof content !== 'string') {
+        return socket.emit("error", { message: "Content must be a string" });
       }
 
-      if (content.length > 10000) {
-        return socket.emit("error", { message: "Content exceeds maximum length" });
+      const trimmedContent = content.trim();
+
+      if (trimmedContent.length === 0) {
+        return socket.emit("error", { message: "Content must not be empty" });
+      }
+
+      if (trimmedContent.length > 10000) {
+        return socket.emit("error", { message: "Content exceeds maximum length of 10000 characters" });
       }
 
       // Récupérer l'utilisateur
@@ -93,7 +99,7 @@ export const setupChatHandlers = (io, socket) => {
       const message = await Message.create({
         userID: user.id,
         convID,
-        content,
+        content: trimmedContent,
         attachment: attachment || null,
         read: false,
       });
