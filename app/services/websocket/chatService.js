@@ -63,6 +63,14 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "convID and content are required" });
       }
 
+      if (typeof content !== 'string' || content.trim().length === 0) {
+        return socket.emit("error", { message: "Content must be a non-empty string" });
+      }
+
+      if (content.length > 10000) {
+        return socket.emit("error", { message: "Content exceeds maximum length" });
+      }
+
       // Récupérer l'utilisateur
       const user = await User.findOne({ where: { firebaseUid: socket.userId } });
 
