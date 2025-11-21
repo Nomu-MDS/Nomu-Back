@@ -30,7 +30,7 @@ export default (sequelize) => {
           key: "id",
         },
       },
-      attachement: {
+      attachment: {
         type: DataTypes.STRING,
         allowNull: true
       },
