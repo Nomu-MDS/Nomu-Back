@@ -1,6 +1,80 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
 
+// Validation helper for attachment field
+const validateAttachment = (attachment) => {
+  if (!attachment) {
+    return { valid: true };
+  }
+
+  // Check if attachment is a string
+  if (typeof attachment !== 'string') {
+    return { valid: false, error: "Attachment must be a string" };
+  }
+
+  // Check maximum length to prevent abuse
+  const MAX_LENGTH = 2048;
+  if (attachment.length > MAX_LENGTH) {
+    return { valid: false, error: `Attachment URL/path exceeds maximum length of ${MAX_LENGTH} characters` };
+  }
+
+  // Allowed file extensions for attachments
+  const ALLOWED_EXTENSIONS = [
+    // Images
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico',
+    // Documents
+    'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
+    // Audio
+    'mp3', 'wav', 'ogg', 'm4a', 'aac',
+    // Video
+    'mp4', 'webm', 'avi', 'mov', 'mkv',
+    // Archives
+    'zip', 'rar', '7z', 'tar', 'gz'
+  ];
+
+  // Try to validate as URL
+  try {
+    const url = new URL(attachment);
+    
+    // Check protocol (only http and https allowed)
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return { valid: false, error: "Only HTTP and HTTPS protocols are allowed" };
+    }
+
+    // Extract file extension from URL pathname
+    const pathname = url.pathname;
+    const extensionMatch = pathname.match(/\.([^./?#]+)(?:[?#]|$)/);
+    
+    if (extensionMatch) {
+      const extension = extensionMatch[1].toLowerCase();
+      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+        return { valid: false, error: `File type '.${extension}' is not allowed` };
+      }
+    }
+
+    return { valid: true };
+  } catch (urlError) {
+    // Not a valid URL, try to validate as file path
+    const fileExtensionMatch = attachment.match(/\.([^./?#]+)$/);
+    
+    if (!fileExtensionMatch) {
+      return { valid: false, error: "Attachment must be a valid URL or file path with an extension" };
+    }
+
+    const extension = fileExtensionMatch[1].toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      return { valid: false, error: `File type '.${extension}' is not allowed` };
+    }
+
+    // Validate file path format (prevent directory traversal)
+    if (attachment.includes('../') || attachment.includes('..\\')) {
+      return { valid: false, error: "Directory traversal is not allowed in file paths" };
+    }
+
+    return { valid: true };
+  }
+};
+
 export const setupChatHandlers = (io, socket) => {
   console.log(`✅ User connected: ${socket.userId}`);
 
@@ -61,6 +135,14 @@ export const setupChatHandlers = (io, socket) => {
 
       if (!convID || !content) {
         return socket.emit("error", { message: "convID and content are required" });
+      }
+
+      // Validate attachment if provided
+      if (attachment) {
+        const validation = validateAttachment(attachment);
+        if (!validation.valid) {
+          return socket.emit("error", { message: validation.error });
+        }
       }
 
       // Récupérer l'utilisateur
