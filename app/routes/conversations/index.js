@@ -184,13 +184,11 @@ router.post("/", async (req, res) => {
       return res.status(403).json({ error: "You can only contact local users" });
     }
 
-    // Vérifier qu'une conversation n'existe pas déjà (dans les deux sens)
+    // Vérifier qu'une conversation n'existe pas déjà (voyageur → local)
     let conversation = await Conversation.findOne({
       where: {
-        [Op.or]: [
-          { voyagerID: currentUser.id, localID: otherUserId },
-          { voyagerID: otherUserId, localID: currentUser.id },
-        ],
+        voyagerID: currentUser.id,
+        localID: otherUserId,
       },
     });
 

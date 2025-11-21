@@ -45,6 +45,11 @@ export const setupChatHandlers = (io, socket) => {
   // Quitter une conversation
   socket.on("leave_conversation", (data) => {
     const { convID } = data;
+
+    if (!convID) {
+      return socket.emit("error", { message: "convID is required" });
+    }
+
     socket.leave(`conversation_${convID}`);
     console.log(`User ${socket.userId} left conversation ${convID}`);
   });
@@ -52,7 +57,7 @@ export const setupChatHandlers = (io, socket) => {
   // Envoyer un message
   socket.on("send_message", async (data) => {
     try {
-      const { convID, content, attachement } = data;
+      const { convID, content, attachment } = data;
 
       if (!convID || !content) {
         return socket.emit("error", { message: "convID and content are required" });
@@ -81,7 +86,7 @@ export const setupChatHandlers = (io, socket) => {
         userID: user.id,
         convID,
         content,
-        attachement: attachement || null,
+        attachment: attachment || null,
         read: false,
       });
 
@@ -127,6 +132,17 @@ export const setupChatHandlers = (io, socket) => {
 
       if (!user) {
         return socket.emit("error", { message: "User not found" });
+      }
+
+      // Vérifier que la conversation existe et que l'utilisateur y a accès
+      const conversation = await Conversation.findByPk(convID);
+
+      if (!conversation) {
+        return socket.emit("error", { message: "Conversation not found" });
+      }
+
+      if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
+        return socket.emit("error", { message: "Access denied to this conversation" });
       }
 
       // Émettre à tous les autres participants (sauf l'émetteur)

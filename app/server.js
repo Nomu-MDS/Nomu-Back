@@ -17,9 +17,21 @@ import { setupChatHandlers } from "./services/websocket/chatService.js";
 dotenv.config();
 const app = express();
 const httpServer = createServer(app);
+
+// Determine CORS origin securely
+let corsOrigin;
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.CLIENT_URL) {
+    throw new Error("CLIENT_URL must be set in production for CORS security.");
+  }
+  corsOrigin = process.env.CLIENT_URL;
+} else {
+  corsOrigin = process.env.CLIENT_URL || "*";
+}
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "*",
+    origin: corsOrigin,
     methods: ["GET", "POST"],
   },
 });
