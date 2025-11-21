@@ -59,8 +59,12 @@ export const setupChatHandlers = (io, socket) => {
     try {
       const { convID, content, attachment } = data;
 
-      if (!convID || !content) {
-        return socket.emit("error", { message: "convID and content are required" });
+      if (!convID) {
+        return socket.emit("error", { message: "convID is required" });
+      }
+
+      if (content === undefined || content === null) {
+        return socket.emit("error", { message: "content is required" });
       }
 
       if (typeof content !== 'string') {
