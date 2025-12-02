@@ -5,11 +5,13 @@ import ProfilModel from "./Profil.js";
 import InteretModel from "./Interet.js";
 import ConversationModel from "./Conversation.js";
 import Reservation from "./Reservation.js";
+import MessageModel from "./Message.js";
 
 const User = UserModel(sequelize);
 const Profil = ProfilModel(sequelize);
 const Interet = InteretModel(sequelize);
 const Conversation = ConversationModel(sequelize);
+const Message = MessageModel(sequelize);
 
 // Relations
 User.hasOne(Profil, { foreignKey: "userId" });
@@ -28,4 +30,11 @@ Conversation.belongsTo(User, { as: "Local", foreignKey: "localID" });
 Conversation.hasMany(Reservation, { foreignKey: "conv_id" });
 Reservation.belongsTo(Conversation, { foreignKey: "conv_id" });
 
-export { sequelize, User, Profil, Interet, Conversation, Reservation };
+// Relations Message
+User.hasMany(Message, { foreignKey: "userID", as: "SentMessages" });
+Message.belongsTo(User, { foreignKey: "userID", as: "Sender" });
+
+Conversation.hasMany(Message, { foreignKey: "convID", as: "Messages" });
+Message.belongsTo(Conversation, { foreignKey: "convID", as: "Conversation" });
+
+export { sequelize, User, Profil, Interet, Conversation, Reservation, Message };
