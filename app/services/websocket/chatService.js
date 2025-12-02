@@ -2,7 +2,6 @@
 import { Conversation, Message, User } from "../../models/index.js";
 
 export const setupChatHandlers = (io, socket) => {
-  console.log(`✅ User connected: ${socket.userId}`);
 
   // Rejoindre une conversation
   socket.on("join_conversation", async (data) => {
@@ -20,12 +19,8 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "Conversation not found" });
       }
 
-      // Vérifier que l'utilisateur fait partie de la conversation
-      const user = await User.findOne({ where: { firebaseUid: socket.userId } });
-
-      if (!user) {
-        return socket.emit("error", { message: "User not found" });
-      }
+      // Utiliser l'utilisateur caché
+      const user = socket.dbUser;
 
       if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
         return socket.emit("error", { message: "Access denied to this conversation" });
@@ -33,7 +28,6 @@ export const setupChatHandlers = (io, socket) => {
 
       // Rejoindre la room
       socket.join(`conversation_${convID}`);
-      console.log(`User ${socket.userId} joined conversation ${convID}`);
 
       socket.emit("joined_conversation", { convID });
     } catch (error) {
@@ -51,7 +45,6 @@ export const setupChatHandlers = (io, socket) => {
     }
 
     socket.leave(`conversation_${convID}`);
-    console.log(`User ${socket.userId} left conversation ${convID}`);
   });
 
   // Envoyer un message
@@ -63,12 +56,8 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "convID and content are required" });
       }
 
-      // Récupérer l'utilisateur
-      const user = await User.findOne({ where: { firebaseUid: socket.userId } });
-
-      if (!user) {
-        return socket.emit("error", { message: "User not found" });
-      }
+      // Utiliser l'utilisateur caché
+      const user = socket.dbUser;
 
       // Vérifier que la conversation existe et que l'utilisateur y a accès
       const conversation = await Conversation.findByPk(convID);
@@ -110,8 +99,6 @@ export const setupChatHandlers = (io, socket) => {
       socket.emit("message_sent", {
         message: fullMessage,
       });
-
-      console.log(`Message sent in conversation ${convID} by user ${user.id}`);
     } catch (error) {
       console.error("Error sending message:", error);
       socket.emit("error", { message: "Failed to send message" });
@@ -119,7 +106,7 @@ export const setupChatHandlers = (io, socket) => {
   });
 
   // Indicateur "en train d'écrire"
-  socket.on("typing", async (data) => {
+  socket.on("typing", (data) => {
     try {
       const { convID, isTyping } = data;
 
@@ -127,23 +114,13 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "convID is required" });
       }
 
-      // Récupérer l'utilisateur
-      const user = await User.findOne({ where: { firebaseUid: socket.userId } });
-
-      if (!user) {
-        return socket.emit("error", { message: "User not found" });
+      // Vérifier que le socket est dans la room (déjà rejoint et validé)
+      if (!socket.rooms.has(`conversation_${convID}`)) {
+        return socket.emit("error", { message: "Not joined to this conversation" });
       }
 
-      // Vérifier que la conversation existe et que l'utilisateur y a accès
-      const conversation = await Conversation.findByPk(convID);
-
-      if (!conversation) {
-        return socket.emit("error", { message: "Conversation not found" });
-      }
-
-      if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
-        return socket.emit("error", { message: "Access denied to this conversation" });
-      }
+      // Utiliser l'utilisateur caché
+      const user = socket.dbUser;
 
       // Émettre à tous les autres participants (sauf l'émetteur)
       socket.to(`conversation_${convID}`).emit("user_typing", {
@@ -180,12 +157,8 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "Message not found" });
       }
 
-      // Récupérer l'utilisateur
-      const user = await User.findOne({ where: { firebaseUid: socket.userId } });
-
-      if (!user) {
-        return socket.emit("error", { message: "User not found" });
-      }
+      // Utiliser l'utilisateur caché
+      const user = socket.dbUser;
 
       // Vérifier que l'utilisateur a accès à la conversation
       const conversation = message.Conversation;
@@ -205,10 +178,8 @@ export const setupChatHandlers = (io, socket) => {
       io.to(`conversation_${conversation.id}`).emit("message_read_update", {
         messageID,
         convID: conversation.id,
-        readBy: user.id,
+        read: true,
       });
-
-      console.log(`Message ${messageID} marked as read by user ${user.id}`);
     } catch (error) {
       console.error("Error marking message as read:", error);
       socket.emit("error", { message: "Failed to mark message as read" });
@@ -216,7 +187,5 @@ export const setupChatHandlers = (io, socket) => {
   });
 
   // Déconnexion
-  socket.on("disconnect", () => {
-    console.log(`❌ User disconnected: ${socket.userId}`);
-  });
+  socket.on("disconnect", () => {});
 };

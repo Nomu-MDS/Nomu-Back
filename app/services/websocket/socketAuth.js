@@ -1,5 +1,6 @@
 // app/services/websocket/socketAuth.js
 import admin from "firebase-admin";
+import { User } from "../../models/index.js";
 
 export const socketAuthMiddleware = async (socket, next) => {
   try {
@@ -12,9 +13,17 @@ export const socketAuthMiddleware = async (socket, next) => {
     // Vérifier le token Firebase
     const decodedToken = await admin.auth().verifyIdToken(token);
 
+    // Récupérer et cacher l'utilisateur de la DB
+    const user = await User.findOne({ where: { firebaseUid: decodedToken.uid } });
+
+    if (!user) {
+      return next(new Error("User not found"));
+    }
+
     // Attacher l'utilisateur au socket
     socket.userId = decodedToken.uid;
     socket.userEmail = decodedToken.email;
+    socket.dbUser = user; // Cacher l'objet utilisateur complet
 
     next();
   } catch (error) {
