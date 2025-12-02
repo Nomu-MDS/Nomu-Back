@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Signup
 router.post("/signup", async (req, res) => {
-  const { name, email, password, role, actif, bio, location } = req.body;
+  const { name, email, password, role, is_active, bio, location } = req.body;
   try {
     // Hash du mot de passe avant stockage
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -27,15 +27,15 @@ router.post("/signup", async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      actif,
+      is_active,
       bio,
       location,
-      firebaseUid: userRecord.uid,
+      firebase_uid: userRecord.uid,
     });
 
     // Génération d'un token Firebase
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
-    res.status(201).json({ user, firebaseUid: userRecord.uid, firebaseToken: customToken });
+    res.status(201).json({ user, firebase_uid: userRecord.uid, firebaseToken: customToken });
   } catch (err) {
     if (err.code === "auth/email-already-exists") {
       // Erreur Firebase : email déjà utilisé

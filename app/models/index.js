@@ -4,7 +4,7 @@ import UserModel from "./User.js";
 import ProfileModel from "./Profile.js";
 import InterestModel from "./Interest.js";
 import ConversationModel from "./Conversation.js";
-import Reservation from "./Reservation.js";
+import ReservationModel from "./Reservation.js";
 import MessageModel from "./Message.js";
 
 const User = UserModel(sequelize);
@@ -32,10 +32,10 @@ Conversation.hasMany(Reservation, { foreignKey: "conversation_id" });
 Reservation.belongsTo(Conversation, { foreignKey: "conversation_id" });
 
 // Relations Message
-User.hasMany(Message, { foreignKey: "userID", as: "SentMessages" });
-Message.belongsTo(User, { foreignKey: "userID", as: "Sender" });
+User.hasMany(Message, { foreignKey: "user_id", as: "SentMessages" });
+Message.belongsTo(User, { foreignKey: "user_id", as: "Sender" });
 
-Conversation.hasMany(Message, { foreignKey: "convID", as: "Messages" });
-Message.belongsTo(Conversation, { foreignKey: "convID", as: "Conversation" });
+Conversation.hasMany(Message, { foreignKey: "conversation_id", as: "Messages" });
+Message.belongsTo(Conversation, { foreignKey: "conversation_id", as: "Conversation" });
 
-export { sequelize, User, Profil, Interet, Conversation, Reservation, Message };
+export { sequelize, User, Profile, Interest, Conversation, Reservation, Message };

@@ -41,14 +41,14 @@ export const setupChatHandlers = (io, socket) => {
   // Rejoindre une conversation
   socket.on("join_conversation", async (data) => {
     try {
-      const { convID } = data;
+      const { conversation_id } = data;
 
-      if (!convID) {
-        return socket.emit("error", { message: "convID is required" });
+      if (!conversation_id) {
+        return socket.emit("error", { message: "conversation_id is required" });
       }
 
       // Vérifier que la conversation existe et que l'utilisateur y a accès
-      const conversation = await Conversation.findByPk(convID);
+      const conversation = await Conversation.findByPk(conversation_id);
 
       if (!conversation) {
         return socket.emit("error", { message: "Conversation not found" });
@@ -57,14 +57,14 @@ export const setupChatHandlers = (io, socket) => {
       // Utiliser l'utilisateur caché
       const user = socket.dbUser;
 
-      if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
+      if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
         return socket.emit("error", { message: "Access denied to this conversation" });
       }
 
       // Rejoindre la room
-      socket.join(`conversation_${convID}`);
+      socket.join(`conversation_${conversation_id}`);
 
-      socket.emit("joined_conversation", { convID });
+      socket.emit("joined_conversation", { conversation_id });
     } catch (error) {
       console.error("Error joining conversation:", error);
       socket.emit("error", { message: "Failed to join conversation" });
@@ -73,22 +73,22 @@ export const setupChatHandlers = (io, socket) => {
 
   // Quitter une conversation
   socket.on("leave_conversation", (data) => {
-    const { convID } = data;
+    const { conversation_id } = data;
 
-    if (!convID) {
-      return socket.emit("error", { message: "convID is required" });
+    if (!conversation_id) {
+      return socket.emit("error", { message: "conversation_id is required" });
     }
 
-    socket.leave(`conversation_${convID}`);
+    socket.leave(`conversation_${conversation_id}`);
   });
 
   // Envoyer un message
   socket.on("send_message", async (data) => {
     try {
-      const { convID, content, attachment } = data;
+      const { conversation_id, content, attachment } = data;
 
-      if (!convID || !content) {
-        return socket.emit("error", { message: "convID and content are required" });
+      if (!conversation_id || !content) {
+        return socket.emit("error", { message: "conversation_id and content are required" });
       }
 
       // Valider la longueur du message
@@ -106,20 +106,20 @@ export const setupChatHandlers = (io, socket) => {
       const user = socket.dbUser;
 
       // Vérifier que la conversation existe et que l'utilisateur y a accès
-      const conversation = await Conversation.findByPk(convID);
+      const conversation = await Conversation.findByPk(conversation_id);
 
       if (!conversation) {
         return socket.emit("error", { message: "Conversation not found" });
       }
 
-      if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
+      if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
         return socket.emit("error", { message: "Access denied to this conversation" });
       }
 
       // Créer le message en DB
       const message = await Message.create({
-        userID: user.id,
-        convID,
+        user_id: user.id,
+        conversation_id,
         content,
         attachment: attachment || null,
         read: false,
@@ -131,13 +131,13 @@ export const setupChatHandlers = (io, socket) => {
           {
             model: User,
             as: "Sender",
-            attributes: ["id", "name", "email", "firebaseUid"],
+            attributes: ["id", "name", "email", "firebase_uid"],
           },
         ],
       });
 
       // Émettre le message à tous les participants de la conversation
-      io.to(`conversation_${convID}`).emit("new_message", {
+      io.to(`conversation_${conversation_id}`).emit("new_message", {
         message: fullMessage,
       });
 
@@ -154,14 +154,14 @@ export const setupChatHandlers = (io, socket) => {
   // Indicateur "en train d'écrire"
   socket.on("typing", (data) => {
     try {
-      const { convID, isTyping } = data;
+      const { conversation_id, isTyping } = data;
 
-      if (!convID) {
-        return socket.emit("error", { message: "convID is required" });
+      if (!conversation_id) {
+        return socket.emit("error", { message: "conversation_id is required" });
       }
 
       // Vérifier que le socket est dans la room (déjà rejoint et validé)
-      if (!socket.rooms.has(`conversation_${convID}`)) {
+      if (!socket.rooms.has(`conversation_${conversation_id}`)) {
         return socket.emit("error", { message: "Not joined to this conversation" });
       }
 
@@ -169,8 +169,8 @@ export const setupChatHandlers = (io, socket) => {
       const user = socket.dbUser;
 
       // Émettre à tous les autres participants (sauf l'émetteur)
-      socket.to(`conversation_${convID}`).emit("user_typing", {
-        convID,
+      socket.to(`conversation_${conversation_id}`).emit("user_typing", {
+        conversation_id,
         userId: user.id,
         userName: user.name,
         isTyping,
@@ -183,14 +183,14 @@ export const setupChatHandlers = (io, socket) => {
   // Marquer un message comme lu
   socket.on("message_read", async (data) => {
     try {
-      const { messageID } = data;
+      const { message_id } = data;
 
-      if (!messageID) {
-        return socket.emit("error", { message: "messageID is required" });
+      if (!message_id) {
+        return socket.emit("error", { message: "message_id is required" });
       }
 
       // Récupérer le message
-      const message = await Message.findByPk(messageID, {
+      const message = await Message.findByPk(message_id, {
         include: [
           {
             model: Conversation,
@@ -208,12 +208,12 @@ export const setupChatHandlers = (io, socket) => {
 
       // Vérifier que l'utilisateur a accès à la conversation
       const conversation = message.Conversation;
-      if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
+      if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
         return socket.emit("error", { message: "Access denied" });
       }
 
       // L'utilisateur ne peut pas marquer ses propres messages comme lus
-      if (message.userID === user.id) {
+      if (message.user_id === user.id) {
         return socket.emit("error", { message: "Cannot mark your own message as read" });
       }
 
@@ -222,8 +222,8 @@ export const setupChatHandlers = (io, socket) => {
 
       // Notifier tous les participants
       io.to(`conversation_${conversation.id}`).emit("message_read_update", {
-        messageID,
-        convID: conversation.id,
+        message_id,
+        conversation_id: conversation.id,
         read: true,
       });
     } catch (error) {

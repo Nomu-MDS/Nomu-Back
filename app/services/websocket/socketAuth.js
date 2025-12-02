@@ -14,7 +14,7 @@ export const socketAuthMiddleware = async (socket, next) => {
     const decodedToken = await admin.auth().verifyIdToken(token);
 
     // Récupérer et cacher l'utilisateur de la DB
-    const user = await User.findOne({ where: { firebaseUid: decodedToken.uid } });
+    const user = await User.findOne({ where: { firebase_uid: decodedToken.uid } });
 
     if (!user) {
       return next(new Error("User not found"));

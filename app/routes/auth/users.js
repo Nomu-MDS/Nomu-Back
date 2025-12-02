@@ -9,8 +9,8 @@ const router = express.Router();
 // GET /users/me : profil privé de l'utilisateur connecté
 router.get("/me", authenticateFirebase, async (req, res) => {
   try {
-    const firebaseUid = req.user.uid;
-    const user = await User.findOne({ where: { firebaseUid } });
+    const firebase_uid = req.user.uid;
+    const user = await User.findOne({ where: { firebase_uid } });
     if (!user) {
       return res.status(404).json({ error: "Utilisateur non trouvé" });
     }

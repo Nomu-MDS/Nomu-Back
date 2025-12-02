@@ -14,19 +14,19 @@ export default (sequelize) => {
         allowNull: false,
         defaultValue: false
       },
-      userID: {
+      user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "Users",
+          model: "users",
           key: "id",
         },
       },
-      convID: {
+      conversation_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "Conversations",
+          model: "conversations",
           key: "id",
         },
       },
@@ -40,13 +40,15 @@ export default (sequelize) => {
       },
     },
     {
+      tableName: 'messages',
       timestamps: true,
+      underscored: true,
       indexes: [
         {
-          fields: ["convID", "createdAt"],
+          fields: ["conversation_id", "created_at"],
         },
         {
-          fields: ["userID"],
+          fields: ["user_id"],
         },
       ],
     }

@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3001
 
 # Lancer avec nodemon pour recharger automatiquement en dev
-CMD ["nodemon", "app/server.js"]
+CMD ["npm", "run", "dev"]
