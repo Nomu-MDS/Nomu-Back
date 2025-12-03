@@ -8,10 +8,13 @@ export default (sequelize) => {
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: true },
     role: { type: DataTypes.STRING, allowNull: false },
-    actif: { type: DataTypes.BOOLEAN, defaultValue: true },
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
     bio: { type: DataTypes.TEXT },
     location: { type: DataTypes.STRING },
-    firebaseUid: { type: DataTypes.STRING, allowNull: true, unique: true },
+    firebase_uid: { type: DataTypes.STRING, allowNull: true, unique: true },
+  }, {
+    tableName: 'users',
+    underscored: true
   });
 
   // Ajout d'un hook pour exclure le mot de passe lors de la sérialisation

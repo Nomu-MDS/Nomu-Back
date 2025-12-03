@@ -2,7 +2,7 @@ import { Reservation, Conversation, User } from "../../models/index.js";
 import { Op } from "sequelize";
 
 const getUserByFirebaseUid = async (firebaseUid) => {
-    const user = await User.findOne({ where: { firebaseUid } });
+    const user = await User.findOne({ where: { firebase_uid: firebaseUid } });
     if (!user) {
         const error = new Error("Utilisateur non trouvé");
         error.statusCode = 404;
@@ -22,7 +22,7 @@ const getReservationWithAccess = async (reservationId, user) => {
         throw error;
     }
 
-    if (reservation.Conversation.voyagerID !== user.id && reservation.Conversation.localID !== user.id) {
+    if (reservation.Conversation.voyager_id !== user.id && reservation.Conversation.local_id !== user.id) {
         const error = new Error("Non autorisé");
         error.statusCode = 403;
         throw error;
@@ -55,11 +55,11 @@ const handleReservationStatusUpdate = async (req, res, status) => {
 
 export const createReservation = async (req, res) => {
     try {
-        const { title, conv_id, price, date, end_date } = req.body;
+        const { title, conversation_id, price, date, end_date } = req.body;
         const user = await getUserByFirebaseUid(req.user.uid);
 
         // Validate required fields
-        if (!title || !conv_id || price == null || !date || !end_date) {
+        if (!title || !conversation_id || price == null || !date || !end_date) {
             return res.status(400).json({ error: "Tous les champs sont requis" });
         }
 
@@ -93,18 +93,18 @@ export const createReservation = async (req, res) => {
             return res.status(400).json({ error: "Le prix doit être supérieur à zéro" });
         }
 
-        const conversation = await Conversation.findByPk(conv_id);
+        const conversation = await Conversation.findByPk(conversation_id);
         if (!conversation) {
             return res.status(404).json({ error: "Conversation non trouvée" });
         }
 
-        if (conversation.voyagerID !== user.id && conversation.localID !== user.id) {
+        if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
             return res.status(403).json({ error: "Vous ne faites pas partie de cette conversation" });
         }
 
         const reservation = await Reservation.create({
             title,
-            conv_id,
+            conversation_id,
             price: parsedPrice,
             date,
             end_date,
@@ -125,8 +125,8 @@ export const getMyReservations = async (req, res) => {
         const conversations = await Conversation.findAll({
             where: {
                 [Op.or]: [
-                    { voyagerID: user.id },
-                    { localID: user.id }
+                    { voyager_id: user.id },
+                    { local_id: user.id }
                 ]
             },
             attributes: ['id']
@@ -140,7 +140,7 @@ export const getMyReservations = async (req, res) => {
 
         const reservations = await Reservation.findAll({
             where: {
-                conv_id: {
+                conversation_id: {
                     [Op.in]: convIds
                 }
             },

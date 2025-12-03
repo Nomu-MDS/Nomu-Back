@@ -1,40 +1,41 @@
 // app/models/index.js
 import { sequelize } from "../config/database.js";
 import UserModel from "./User.js";
-import ProfilModel from "./Profil.js";
-import InteretModel from "./Interet.js";
+import ProfileModel from "./Profile.js";
+import InterestModel from "./Interest.js";
 import ConversationModel from "./Conversation.js";
-import Reservation from "./Reservation.js";
+import ReservationModel from "./Reservation.js";
 import MessageModel from "./Message.js";
 
 const User = UserModel(sequelize);
-const Profil = ProfilModel(sequelize);
-const Interet = InteretModel(sequelize);
+const Profile = ProfileModel(sequelize);
+const Interest = InterestModel(sequelize);
 const Conversation = ConversationModel(sequelize);
+const Reservation = ReservationModel(sequelize);
 const Message = MessageModel(sequelize);
 
 // Relations
-User.hasOne(Profil, { foreignKey: "userId" });
-Profil.belongsTo(User, { foreignKey: "userId" });
+User.hasOne(Profile, { foreignKey: "user_id" });
+Profile.belongsTo(User, { foreignKey: "user_id" });
 
-Profil.belongsToMany(Interet, { through: "ProfilInterets" });
-Interet.belongsToMany(Profil, { through: "ProfilInterets" });
+Profile.belongsToMany(Interest, { through: "profile_interests" });
+Interest.belongsToMany(Profile, { through: "profile_interests" });
 
 // Relations Conversation
-User.hasMany(Conversation, { as: "ConversationsAsVoyager", foreignKey: "voyagerID" });
-User.hasMany(Conversation, { as: "ConversationsAsLocal", foreignKey: "localID" });
-Conversation.belongsTo(User, { as: "Voyager", foreignKey: "voyagerID" });
-Conversation.belongsTo(User, { as: "Local", foreignKey: "localID" });
+User.hasMany(Conversation, { as: "ConversationsAsVoyager", foreignKey: "voyager_id" });
+User.hasMany(Conversation, { as: "ConversationsAsLocal", foreignKey: "local_id" });
+Conversation.belongsTo(User, { as: "Voyager", foreignKey: "voyager_id" });
+Conversation.belongsTo(User, { as: "Local", foreignKey: "local_id" });
 
 // Relations Reservation
-Conversation.hasMany(Reservation, { foreignKey: "conv_id" });
-Reservation.belongsTo(Conversation, { foreignKey: "conv_id" });
+Conversation.hasMany(Reservation, { foreignKey: "conversation_id" });
+Reservation.belongsTo(Conversation, { foreignKey: "conversation_id" });
 
 // Relations Message
-User.hasMany(Message, { foreignKey: "userID", as: "SentMessages" });
-Message.belongsTo(User, { foreignKey: "userID", as: "Sender" });
+User.hasMany(Message, { foreignKey: "user_id", as: "SentMessages" });
+Message.belongsTo(User, { foreignKey: "user_id", as: "Sender" });
 
-Conversation.hasMany(Message, { foreignKey: "convID", as: "Messages" });
-Message.belongsTo(Conversation, { foreignKey: "convID", as: "Conversation" });
+Conversation.hasMany(Message, { foreignKey: "conversation_id", as: "Messages" });
+Message.belongsTo(Conversation, { foreignKey: "conversation_id", as: "Conversation" });
 
-export { sequelize, User, Profil, Interet, Conversation, Reservation, Message };
+export { sequelize, User, Profile, Interest, Conversation, Reservation, Message };
