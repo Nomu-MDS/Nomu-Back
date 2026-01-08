@@ -2,7 +2,7 @@
 import express from "express";
 import admin from "../../config/firebase.js";
 import { User, Profile } from "../../models/index.js";
-import { indexUsers } from "../../services/meilisearch/meiliUserService.js";
+import { indexProfiles } from "../../services/meilisearch/meiliProfileService.js";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 
@@ -39,13 +39,17 @@ router.post("/signup", async (req, res) => {
       is_searchable: is_searchable || false,
     });
 
-    // Si l'utilisateur veut être visible, l'indexer dans Meilisearch
+    // Si l'utilisateur veut être visible, indexer le profil dans Meilisearch
     if (is_searchable) {
-      await indexUsers([{
-        id: user.id,
+      await indexProfiles([{
+        id: profile.id,
+        user_id: user.id,
         name: user.name,
         location: user.location,
         bio: user.bio,
+        biography: "",
+        country: "",
+        city: "",
         interests: "",
       }]);
     }

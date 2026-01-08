@@ -11,7 +11,7 @@ import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
-import { indexUsers } from "./services/meilisearch/meiliUserService.js";
+import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
 
@@ -85,17 +85,17 @@ const setupMeilisearchAI = async () => {
 
     // 2. Configurer l'embedder OpenAI (inclut les intérêts)
     const embedderConfig = {
-      "users-openai": {
+      "profiles-openai": {
         source: "openAi",
         apiKey: OPENAI_API_KEY,
         model: "text-embedding-3-small",
         documentTemplate:
-          "{{doc.name}}, {{doc.location}}. Bio: {{doc.bio}}. Intérêts: {{doc.interests}}",
+          "{{doc.name}}, {{doc.location}}. {{doc.biography}}. Intérêts: {{doc.interests}}. {{doc.country}}, {{doc.city}}",
       },
     };
 
     const embedderResponse = await fetch(
-      `${MEILI_HOST}/indexes/users/settings/embedders`,
+      `${MEILI_HOST}/indexes/profiles/settings/embedders`,
       {
         method: "PATCH",
         headers: {
@@ -112,13 +112,13 @@ const setupMeilisearchAI = async () => {
     }
 
     // 3. Configurer les filterable attributes pour filtrer par intérêts
-    await fetch(`${MEILI_HOST}/indexes/users/settings/filterable-attributes`, {
+    await fetch(`${MEILI_HOST}/indexes/profiles/settings/filterable-attributes`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${MEILI_API_KEY}`,
       },
-      body: JSON.stringify(["interests", "location"]),
+      body: JSON.stringify(["interests", "location", "country", "city"]),
     });
 
     console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
@@ -154,29 +154,32 @@ const start = async () => {
     await setupMeilisearchAI();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
-    // Ré-indexer les utilisateurs searchable dans Meilisearch
+    // Ré-indexer les profils searchable dans Meilisearch
     try {
-      const users = await User.findAll({
-        include: [{
-          model: Profile,
-          where: { is_searchable: true },
-          required: true,
-          include: [Interest],
-        }],
+      const profiles = await Profile.findAll({
+        where: { is_searchable: true },
+        include: [
+          { model: User },
+          { model: Interest },
+        ],
       });
 
-      if (users.length > 0) {
-        const usersData = users.map((user) => ({
-          id: user.id,
-          name: user.name,
-          location: user.location,
-          bio: user.bio,
-          interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+      if (profiles.length > 0) {
+        const profilesData = profiles.map((profile) => ({
+          id: profile.id,
+          user_id: profile.user_id,
+          name: profile.User?.name || "",
+          location: profile.User?.location || profile.city || "",
+          bio: profile.User?.bio || "",
+          biography: profile.biography || "",
+          country: profile.country || "",
+          city: profile.city || "",
+          interests: profile.Interests?.map((i) => i.name).join(", ") || "",
         }));
-        await indexUsers(usersData);
-        console.log(`✅ ${users.length} utilisateur(s) indexé(s) dans Meilisearch`);
+        await indexProfiles(profilesData);
+        console.log(`✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`);
       } else {
-        console.log("ℹ️  Aucun utilisateur searchable à indexer");
+        console.log("ℹ️  Aucun profil searchable à indexer");
       }
     } catch (err) {
       console.error("⚠️  Erreur lors de l'indexation:", err.message);

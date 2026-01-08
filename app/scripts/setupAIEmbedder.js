@@ -21,20 +21,20 @@ async function setupEmbedder() {
   }
 
   const embedderConfig = {
-    "users-openai": {
+    "profiles-openai": {
       source: "openAi",
       apiKey: OPENAI_API_KEY,
       model: "text-embedding-3-small",
       documentTemplate:
-        "Utilisateur {{doc.name}}, role {{doc.role}}, bio: {{doc.bio}}, basé à {{doc.location}}",
+        "{{doc.name}}, {{doc.location}}. {{doc.biography}}. Intérêts: {{doc.interests}}. {{doc.country}}, {{doc.city}}",
     },
   };
 
   try {
-    console.log("🔧 Configuration de l'embedder OpenAI...");
+    console.log("🔧 Configuration de l'embedder OpenAI pour les profils...");
 
     const response = await fetch(
-      `${MEILI_HOST}/indexes/users/settings/embedders`,
+      `${MEILI_HOST}/indexes/profiles/settings/embedders`,
       {
         method: "PATCH",
         headers: {

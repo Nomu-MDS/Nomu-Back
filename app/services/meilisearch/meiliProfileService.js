@@ -1,17 +1,17 @@
-// services/meilisearch/meiliUserService.js
+// services/meilisearch/meiliProfileService.js
 import { meiliClient } from "../../config/meilisearch.js";
 
-const index = meiliClient.index("users");
+const index = meiliClient.index("profiles");
 
-// Indexe les utilisateurs (seulement ceux avec is_searchable = true)
-export const indexUsers = async (data) => {
+// Indexe les profils (seulement ceux avec is_searchable = true)
+export const indexProfiles = async (data) => {
   return await index.addDocuments(data, { primaryKey: "id" });
 };
 
-// Supprime un utilisateur de l'index
-export const removeUserFromIndex = async (userId) => {
+// Supprime un profil de l'index
+export const removeProfileFromIndex = async (profileId) => {
   try {
-    return await index.deleteDocument(userId);
+    return await index.deleteDocument(profileId);
   } catch (error) {
     if (error.code === "index_not_found") return null;
     throw error;
@@ -19,14 +19,14 @@ export const removeUserFromIndex = async (userId) => {
 };
 
 // Recherche enrichie : combine le profil du chercheur (A) + sa requête pour trouver B
-export const searchUsersEnriched = async (searcherProfile, query, options = {}) => {
+export const searchProfilesEnriched = async (searcherProfile, query, options = {}) => {
   try {
     // Construire une requête enrichie avec le contexte du chercheur
     const enrichedQuery = buildEnrichedQuery(searcherProfile, query);
     
     const searchParams = {
       hybrid: {
-        embedder: "users-openai",
+        embedder: "profiles-openai",
         semanticRatio: options.semanticRatio || 0.7,
       },
       limit: options.limit || 20,
@@ -74,11 +74,11 @@ const buildEnrichedQuery = (searcherProfile, userQuery) => {
 };
 
 // Recherche simple (sans enrichissement)
-export const searchUsers = async (query, options = {}) => {
+export const searchProfiles = async (query, options = {}) => {
   try {
     const searchParams = {
       hybrid: {
-        embedder: "users-openai",
+        embedder: "profiles-openai",
         semanticRatio: options.semanticRatio || 0.5,
       },
       limit: options.limit || 20,

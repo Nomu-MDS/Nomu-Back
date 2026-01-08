@@ -1,11 +1,11 @@
 // controllers/auth/usersController.js
 import { User, Profile, Interest } from "../../models/index.js";
 import {
-  indexUsers,
-  removeUserFromIndex,
-  searchUsersEnriched,
-  searchUsers as searchUsersService,
-} from "../../services/meilisearch/meiliUserService.js";
+  indexProfiles,
+  removeProfileFromIndex,
+  searchProfilesEnriched,
+  searchProfiles as searchProfilesService,
+} from "../../services/meilisearch/meiliProfileService.js";
 
 export const createUser = async (req, res) => {
   try {
@@ -65,18 +65,22 @@ export const updateProfile = async (req, res) => {
     // Si is_searchable a changé, gérer l'indexation
     if (is_searchable !== undefined) {
       if (is_searchable) {
-        const user = await User.findByPk(userId, {
-          include: [{ model: Profile, include: [Interest] }],
+        const updatedProfile = await Profile.findByPk(profile.id, {
+          include: [User, Interest],
         });
-        await indexUsers([{
-          id: user.id,
-          name: user.name,
-          location: user.location,
-          bio: user.bio,
-          interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+        await indexProfiles([{
+          id: updatedProfile.id,
+          user_id: updatedProfile.user_id,
+          name: updatedProfile.User?.name || "",
+          location: updatedProfile.User?.location || updatedProfile.city || "",
+          bio: updatedProfile.User?.bio || "",
+          biography: updatedProfile.biography || "",
+          country: updatedProfile.country || "",
+          city: updatedProfile.city || "",
+          interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
         }]);
       } else {
-        await removeUserFromIndex(userId);
+        await removeProfileFromIndex(profile.id);
       }
     }
 
@@ -110,15 +114,19 @@ export const updateInterests = async (req, res) => {
 
     // Ré-indexer si searchable
     if (profile.is_searchable) {
-      const user = await User.findByPk(userId, {
-        include: [{ model: Profile, include: [Interest] }],
+      const updatedProfile = await Profile.findByPk(profile.id, {
+        include: [User, Interest],
       });
-      await indexUsers([{
-        id: user.id,
-        name: user.name,
-        location: user.location,
-        bio: user.bio,
-        interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+      await indexProfiles([{
+        id: updatedProfile.id,
+        user_id: updatedProfile.user_id,
+        name: updatedProfile.User?.name || "",
+        location: updatedProfile.User?.location || updatedProfile.city || "",
+        bio: updatedProfile.User?.bio || "",
+        biography: updatedProfile.biography || "",
+        country: updatedProfile.country || "",
+        city: updatedProfile.city || "",
+        interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
       }]);
     }
 
@@ -146,18 +154,22 @@ export const toggleSearchable = async (req, res) => {
     }
 
     if (is_searchable) {
-      const user = await User.findByPk(userId, {
-        include: [{ model: Profile, include: [Interest] }],
+      const updatedProfile = await Profile.findByPk(profile.id, {
+        include: [User, Interest],
       });
-      await indexUsers([{
-        id: user.id,
-        name: user.name,
-        location: user.location,
-        bio: user.bio,
-        interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+      await indexProfiles([{
+        id: updatedProfile.id,
+        user_id: updatedProfile.user_id,
+        name: updatedProfile.User?.name || "",
+        location: updatedProfile.User?.location || updatedProfile.city || "",
+        bio: updatedProfile.User?.bio || "",
+        biography: updatedProfile.biography || "",
+        country: updatedProfile.country || "",
+        city: updatedProfile.city || "",
+        interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
       }]);
     } else {
-      await removeUserFromIndex(userId);
+      await removeProfileFromIndex(profile.id);
     }
 
     res.json({ is_searchable });
@@ -178,24 +190,31 @@ export const searchUsers = async (req, res) => {
 
     // Si connecté, enrichir avec le profil du chercheur
     const searcherId = req.user?.dbUser?.id;
+    let searcherProfileId = null;
+    
     if (searcherId) {
-      const searcher = await User.findByPk(searcherId, {
-        include: [{ model: Profile, include: [Interest] }],
+      const searcherProfile = await Profile.findOne({
+        where: { user_id: searcherId },
+        include: [User, Interest],
       });
-      const searcherProfile = searcher ? {
-        bio: searcher.bio,
-        location: searcher.location,
-        interests: searcher.Profile?.Interests?.map((i) => i.name) || [],
+      
+      searcherProfileId = searcherProfile?.id;
+      
+      const profileData = searcherProfile ? {
+        bio: searcherProfile.User?.bio || "",
+        biography: searcherProfile.biography || "",
+        location: searcherProfile.User?.location || searcherProfile.city || "",
+        interests: searcherProfile.Interests?.map((i) => i.name) || [],
       } : null;
 
-      const result = await searchUsersEnriched(searcherProfile, q || "", options);
-      // Exclure le chercheur des résultats
-      result.hits = result.hits.filter((hit) => hit.id !== searcherId);
+      const result = await searchProfilesEnriched(profileData, q || "", options);
+      // Exclure le profil du chercheur des résultats
+      result.hits = result.hits.filter((hit) => hit.id !== searcherProfileId);
       return res.json(result);
     }
 
     // Sinon recherche simple
-    const result = await searchUsersService(q || "", options);
+    const result = await searchProfilesService(q || "", options);
     res.json(result);
   } catch (err) {
     console.error("Erreur searchUsers:", err);
