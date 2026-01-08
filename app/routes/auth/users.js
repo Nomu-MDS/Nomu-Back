@@ -1,6 +1,6 @@
 // Routes utilisateurs
 import express from "express";
-import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests } from "../../controllers/auth/usersController.js";
+import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests, getProfileById } from "../../controllers/auth/usersController.js";
 import { User, Profile, Interest } from "../../models/index.js";
 
 const router = express.Router();
@@ -18,6 +18,9 @@ router.get("/me", async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+
+// GET /users/:id : afficher le profil public d'un utilisateur (PUBLIC)
+router.get("/:id", authenticateFirebase, getProfileById);
 
 // PATCH /users/profile : modifier le profil (+ intérêts optionnels)
 router.patch("/profile", updateProfile);

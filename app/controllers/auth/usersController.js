@@ -222,3 +222,58 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+// Récupérer le profil public d'un utilisateur par ID
+export const getProfileById = async (req, res) => {
+  try {
+    // Validation du paramètre ID
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: "ID utilisateur invalide" });
+    }
+
+    // Récupérer l'utilisateur avec son profil et ses intérêts
+    const user = await User.findByPk(userId, {
+      include: [{ model: Profile, include: [Interest] }],
+      attributes: {
+        exclude: ["password", "firebase_uid", "email"] // Exclusion des champs sensibles
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    // Vérifier que le profil existe et est searchable (visible publiquement)
+    const profile = user.Profile;
+    if (!profile || !profile.is_searchable) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Construire la réponse avec profil et ID uniquement
+    const publicProfile = {
+      id: user.id,
+      profile: {
+        id: profile.id,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        age: profile.age,
+        biography: profile.biography,
+        country: profile.country,
+        city: profile.city,
+        image_url: profile.image_url,
+        interests: profile.Interests?.map((interest) => ({
+          id: interest.id,
+          name: interest.name,
+        })) || []
+      }
+    };
+
+    // Ajouter header de cache pour optimisation (1 heure)
+    res.set("Cache-Control", "public, max-age=3600");
+    res.json(publicProfile);
+  } catch (err) {
+    console.error("Erreur getProfileById:", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
