@@ -9,7 +9,6 @@ export default (sequelize) => {
     password: { type: DataTypes.STRING, allowNull: true },
     role: { type: DataTypes.STRING, defaultValue: "user" },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    is_searchable: { type: DataTypes.BOOLEAN, defaultValue: false },
     bio: { type: DataTypes.TEXT },
     location: { type: DataTypes.STRING },
     firebase_uid: { type: DataTypes.STRING, allowNull: true, unique: true },

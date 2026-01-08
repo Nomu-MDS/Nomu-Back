@@ -28,16 +28,74 @@ export const createUser = async (req, res) => {
   }
 };
 
+// Mettre à jour le profil
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.dbUser.id;
+    const {
+      // Champs User
+      name, bio, location,
+      // Champs Profile
+      first_name, last_name, age, biography, country, city, image_url, is_searchable
+    } = req.body;
+
+    // Mettre à jour User si nécessaire
+    if (name || bio || location) {
+      await User.update(
+        { name, bio, location },
+        { where: { id: userId } }
+      );
+    }
+
+    // Mettre à jour Profile
+    let profile = await Profile.findOne({ where: { user_id: userId } });
+    if (!profile) {
+      profile = await Profile.create({ user_id: userId, first_name, last_name, age, biography, country, city, image_url, is_searchable });
+    } else {
+      await profile.update({ first_name, last_name, age, biography, country, city, image_url, is_searchable });
+    }
+
+    // Si is_searchable a changé, gérer l'indexation
+    if (is_searchable !== undefined) {
+      if (is_searchable) {
+        const user = await User.findByPk(userId, {
+          include: [{ model: Profile, include: [Interest] }],
+        });
+        await indexUsers([{
+          id: user.id,
+          name: user.name,
+          location: user.location,
+          bio: user.bio,
+          interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+        }]);
+      } else {
+        await removeUserFromIndex(userId);
+      }
+    }
+
+    // Retourner user + profile
+    const updatedUser = await User.findByPk(userId, { include: [Profile] });
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Erreur updateProfile:", err);
+    res.status(500).json({ error: "Erreur mise à jour profil" });
+  }
+};
+
 // Active/désactive la visibilité dans la recherche
 export const toggleSearchable = async (req, res) => {
   try {
     const userId = req.user.dbUser.id;
     const { is_searchable } = req.body;
 
-    await User.update({ is_searchable }, { where: { id: userId } });
+    let profile = await Profile.findOne({ where: { user_id: userId } });
+    if (!profile) {
+      profile = await Profile.create({ user_id: userId, is_searchable });
+    } else {
+      await profile.update({ is_searchable });
+    }
 
     if (is_searchable) {
-      // Indexer l'utilisateur avec ses intérêts
       const user = await User.findByPk(userId, {
         include: [{ model: Profile, include: [Interest] }],
       });

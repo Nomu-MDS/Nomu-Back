@@ -155,8 +155,12 @@ const start = async () => {
     // Ré-indexer les utilisateurs searchable dans Meilisearch
     try {
       const users = await User.findAll({
-        where: { is_searchable: true },
-        include: [{ model: Profile, include: [Interest] }],
+        include: [{
+          model: Profile,
+          where: { is_searchable: true },
+          required: true,
+          include: [Interest],
+        }],
       });
 
       if (users.length > 0) {

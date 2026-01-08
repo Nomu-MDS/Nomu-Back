@@ -1,7 +1,7 @@
 // scripts/seedUsers.js - Ajoute des utilisateurs de test pour enrichir l'index
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
-import { sequelize, User } from "../models/index.js";
+import { sequelize, User, Profile } from "../models/index.js";
 import { indexUsers } from "../services/meilisearch/meiliUserService.js";
 
 dotenv.config();
@@ -119,6 +119,11 @@ async function seed() {
         password: hashedPassword,
         role: "user",
         is_active: true,
+      });
+
+      // Créer le profile avec is_searchable
+      await Profile.create({
+        user_id: user.id,
         is_searchable: true,
       });
 

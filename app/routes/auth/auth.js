@@ -1,7 +1,7 @@
 // Routes d'authentification
 import express from "express";
 import admin from "../../config/firebase.js";
-import { User } from "../../models/index.js";
+import { User, Profile } from "../../models/index.js";
 import { indexUsers } from "../../services/meilisearch/meiliUserService.js";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
@@ -21,17 +21,22 @@ router.post("/signup", async (req, res) => {
       displayName: name,
     });
 
-    // Création PostgreSQL
+    // Création User PostgreSQL
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
       is_active,
-      is_searchable: is_searchable || false,
       bio,
       location,
       firebase_uid: userRecord.uid,
+    });
+
+    // Création Profile avec is_searchable
+    const profile = await Profile.create({
+      user_id: user.id,
+      is_searchable: is_searchable || false,
     });
 
     // Si l'utilisateur veut être visible, l'indexer dans Meilisearch
@@ -46,7 +51,7 @@ router.post("/signup", async (req, res) => {
     }
 
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
-    res.status(201).json({ user, firebase_uid: userRecord.uid, firebaseToken: customToken });
+    res.status(201).json({ user, profile, firebase_uid: userRecord.uid, firebaseToken: customToken });
   } catch (err) {
     if (err.code === "auth/email-already-exists") {
       res.status(400).json({ error: "Email already exists in Firebase." });

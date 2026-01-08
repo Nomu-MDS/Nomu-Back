@@ -10,6 +10,7 @@ export default (sequelize) => {
         country: DataTypes.STRING,
         city: DataTypes.STRING,
         image_url: DataTypes.STRING,
+        is_searchable: { type: DataTypes.BOOLEAN, defaultValue: false },
     }, {
         tableName: 'profiles',
         underscored: true
