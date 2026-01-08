@@ -2,6 +2,7 @@
 import express from "express";
 import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests, getProfileById } from "../../controllers/auth/usersController.js";
 import { User, Profile, Interest } from "../../models/index.js";
+import { authenticateFirebase } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
