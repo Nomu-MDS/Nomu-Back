@@ -9,6 +9,7 @@ import localsRoutes from "./routes/meilisearch/locals.js";
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
+import tokensRoutes from "./routes/tokens/index.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
@@ -45,6 +46,7 @@ app.use("/interests", interestsRoutes);
 app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateFirebase, conversationsRoutes);
+app.use("/tokens", tokensRoutes);
 
 // Configuration Socket.IO
 io.use(socketAuthMiddleware);
