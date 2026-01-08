@@ -1,6 +1,6 @@
 // Routes utilisateurs
 import express from "express";
-import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests } from "../../controllers/auth/usersController.js";
+import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests, getProfileById } from "../../controllers/auth/usersController.js";
 import { User, Profile, Interest } from "../../models/index.js";
 
 const router = express.Router();
@@ -32,5 +32,8 @@ router.patch("/searchable", toggleSearchable);
 router.get("/search", searchUsers);
 
 router.post("/", createUser);
+
+// GET /users/:id : afficher le profil public d'un utilisateur (doit être en dernier)
+router.get("/:id", getProfileById);
 
 export default router;

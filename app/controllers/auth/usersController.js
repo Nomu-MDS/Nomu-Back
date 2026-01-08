@@ -222,3 +222,65 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+// Récupérer le profil public par ID de profil
+export const getProfileById = async (req, res) => {
+  try {
+    // Validation du paramètre ID
+    const profileId = parseInt(req.params.id, 10);
+    if (isNaN(profileId) || profileId <= 0) {
+      return res.status(400).json({ error: "ID profil invalide" });
+    }
+
+    // Récupérer le profil avec l'utilisateur et les intérêts
+    const profile = await Profile.findByPk(profileId, {
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ["password", "firebase_uid", "email"] }
+        },
+        Interest
+      ]
+    });
+
+    if (!profile) {
+      return res.status(404).json({ error: "Profil non trouvé" });
+    }
+
+    // Vérifier que le profil est searchable (visible publiquement)
+    if (!profile.is_searchable) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Vérifier que l'utilisateur existe et est actif
+    if (!profile.User || !profile.User.is_active) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Construire la réponse avec user_id et profil
+    const publicProfile = {
+      id: profile.User.id,
+      profile: {
+        id: profile.id,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        age: profile.age,
+        biography: profile.biography,
+        country: profile.country,
+        city: profile.city,
+        image_url: profile.image_url,
+        interests: profile.Interests?.map((interest) => ({
+          id: interest.id,
+          name: interest.name,
+        })) || []
+      }
+    };
+
+    // Ajouter header de cache pour optimisation (1 heure)
+    res.set("Cache-Control", "public, max-age=3600");
+    res.json(publicProfile);
+  } catch (err) {
+    console.error("Erreur getProfileById:", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
