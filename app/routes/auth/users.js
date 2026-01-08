@@ -21,7 +21,7 @@ router.get("/me", async (req, res) => {
 });
 
 // GET /users/:id : afficher le profil public d'un utilisateur (PUBLIC)
-router.get("/:id", authenticateFirebase, getProfileById);
+router.get("/users/:id", authenticateFirebase, getProfileById);
 
 // PATCH /users/profile : modifier le profil (+ intérêts optionnels)
 router.patch("/profile", updateProfile);
