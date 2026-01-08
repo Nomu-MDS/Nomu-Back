@@ -9,7 +9,7 @@ import localsRoutes from "./routes/meilisearch/locals.js";
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
-import { sequelize, User } from "./models/index.js";
+import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexUsers } from "./services/meilisearch/meiliUserService.js";
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
@@ -81,14 +81,14 @@ const setupMeilisearchAI = async () => {
       throw new Error(`Vector store: ${error}`);
     }
 
-    // 2. Configurer l'embedder OpenAI
+    // 2. Configurer l'embedder OpenAI (inclut les intérêts)
     const embedderConfig = {
       "users-openai": {
         source: "openAi",
         apiKey: OPENAI_API_KEY,
         model: "text-embedding-3-small",
         documentTemplate:
-          "Utilisateur {{doc.name}}, role {{doc.role}}, bio: {{doc.bio}}, basé à {{doc.location}}",
+          "{{doc.name}}, {{doc.location}}. Bio: {{doc.bio}}. Intérêts: {{doc.interests}}",
       },
     };
 
@@ -108,6 +108,16 @@ const setupMeilisearchAI = async () => {
       const error = await embedderResponse.text();
       throw new Error(`Embedder: ${error}`);
     }
+
+    // 3. Configurer les filterable attributes pour filtrer par intérêts
+    await fetch(`${MEILI_HOST}/indexes/users/settings/filterable-attributes`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MEILI_API_KEY}`,
+      },
+      body: JSON.stringify(["interests", "location"]),
+    });
 
     console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
   } catch (err) {
@@ -142,27 +152,28 @@ const start = async () => {
     await setupMeilisearchAI();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
-    // Ré-indexer tous les utilisateurs dans Meilisearch au démarrage
+    // Ré-indexer les utilisateurs searchable dans Meilisearch
     try {
-      const users = await User.findAll();
+      const users = await User.findAll({
+        where: { is_searchable: true },
+        include: [{ model: Profile, include: [Interest] }],
+      });
+
       if (users.length > 0) {
         const usersData = users.map((user) => ({
           id: user.id,
           name: user.name,
-          email: user.email,
-          role: user.role,
           location: user.location,
           bio: user.bio,
+          interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
         }));
         await indexUsers(usersData);
-        console.log(
-          `✅ ${users.length} utilisateur(s) ré-indexé(s) dans Meilisearch`
-        );
+        console.log(`✅ ${users.length} utilisateur(s) indexé(s) dans Meilisearch`);
       } else {
-        console.log("ℹ️  Aucun utilisateur à indexer");
+        console.log("ℹ️  Aucun utilisateur searchable à indexer");
       }
     } catch (err) {
-      console.error("⚠️  Erreur lors de la ré-indexation:", err.message);
+      console.error("⚠️  Erreur lors de l'indexation:", err.message);
     }
 
     const PORT = process.env.PORT || 3001;

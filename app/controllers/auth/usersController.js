@@ -1,89 +1,97 @@
 // controllers/auth/usersController.js
-import { User } from "../../models/index.js";
-import { indexUsers, searchInUsers, semanticSearchUsers } from "../../services/meilisearch/meiliUserService.js";
+import { User, Profile, Interest } from "../../models/index.js";
+import {
+  indexUsers,
+  removeUserFromIndex,
+  searchUsersEnriched,
+  searchUsers as searchUsersService,
+} from "../../services/meilisearch/meiliUserService.js";
 
 export const createUser = async (req, res) => {
   try {
     const { name, email, password, role, is_active, bio, location } = req.body;
 
-    // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findOne({ where: { email } });
-
     if (existingUser) {
-      console.log(`⚠️  Utilisateur avec l'email ${email} existe déjà`);
-      return res.status(409).json({
-        error: "Un utilisateur avec cet email existe déjà",
-        field: "email"
-      });
+      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role,
-      is_active,
-      bio,
-      location,
-    });
-
-    // Indexation dans Meilisearch
-    await indexUsers([
-      {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        location: user.location,
-        bio: user.bio,
-      },
-    ]);
-
+    const user = await User.create({ name, email, password, role, is_active, bio, location });
     console.log(`✅ Utilisateur créé: ${user.email}`);
     res.status(201).json(user);
   } catch (err) {
     console.error("Erreur createUser:", err);
-
-    // Gérer spécifiquement les erreurs de contrainte unique
-    if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({
-        error: "Un utilisateur avec cet email existe déjà",
-        field: err.errors[0]?.path || "email"
-      });
+    if (err.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
     }
-
     res.status(500).json({ error: "Erreur création user" });
   }
 };
 
-export const searchUsers = async (req, res) => {
+// Active/désactive la visibilité dans la recherche
+export const toggleSearchable = async (req, res) => {
   try {
-    const { q, hybrid, semanticRatio } = req.query;
+    const userId = req.user.dbUser.id;
+    const { is_searchable } = req.body;
 
-    const options = {};
-    if (hybrid === 'true') {
-      options.hybrid = true;
-      if (semanticRatio) {
-        options.semanticRatio = parseFloat(semanticRatio);
-      }
+    await User.update({ is_searchable }, { where: { id: userId } });
+
+    if (is_searchable) {
+      // Indexer l'utilisateur avec ses intérêts
+      const user = await User.findByPk(userId, {
+        include: [{ model: Profile, include: [Interest] }],
+      });
+      await indexUsers([{
+        id: user.id,
+        name: user.name,
+        location: user.location,
+        bio: user.bio,
+        interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+      }]);
+    } else {
+      await removeUserFromIndex(userId);
     }
 
-    const result = await searchInUsers(q, options);
-    res.json(result);
+    res.json({ is_searchable });
   } catch (err) {
-    console.error("Erreur searchUsers:", err);
-    res.status(500).json({ error: "Erreur recherche utilisateur" });
+    console.error("Erreur toggleSearchable:", err);
+    res.status(500).json({ error: "Erreur mise à jour visibilité" });
   }
 };
 
-export const semanticSearch = async (req, res) => {
+// Recherche : enrichie si connecté, sinon simple
+export const searchUsers = async (req, res) => {
   try {
-    const { q, limit } = req.query;
-    const result = await semanticSearchUsers(q, { limit: limit ? parseInt(limit) : 20 });
+    const { q, filterInterests, limit } = req.query;
+    const options = {
+      limit: limit ? parseInt(limit) : 20,
+      filterInterests: filterInterests ? filterInterests.split(",") : null,
+    };
+
+    // Si connecté, enrichir avec le profil du chercheur
+    const searcherId = req.user?.dbUser?.id;
+    if (searcherId) {
+      const searcher = await User.findByPk(searcherId, {
+        include: [{ model: Profile, include: [Interest] }],
+      });
+      const searcherProfile = searcher ? {
+        bio: searcher.bio,
+        location: searcher.location,
+        interests: searcher.Profile?.Interests?.map((i) => i.name) || [],
+      } : null;
+
+      const result = await searchUsersEnriched(searcherProfile, q || "", options);
+      // Exclure le chercheur des résultats
+      result.hits = result.hits.filter((hit) => hit.id !== searcherId);
+      return res.json(result);
+    }
+
+    // Sinon recherche simple
+    const result = await searchUsersService(q || "", options);
     res.json(result);
   } catch (err) {
-    console.error("Erreur semanticSearch:", err);
-    res.status(500).json({ error: "Erreur recherche sémantique" });
+    console.error("Erreur searchUsers:", err);
+    res.status(500).json({ error: "Erreur recherche" });
   }
 };
 

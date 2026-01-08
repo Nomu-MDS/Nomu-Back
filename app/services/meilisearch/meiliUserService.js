@@ -1,32 +1,46 @@
 // services/meilisearch/meiliUserService.js
-import { MeiliSearch } from "meilisearch";
+import { meiliClient } from "../../config/meilisearch.js";
 
-const client = new MeiliSearch({
-  host: process.env.MEILI_HOST,
-  apiKey: process.env.MEILI_API_KEY,
-});
+const index = meiliClient.index("users");
 
-const index = client.index("users");
-
+// Indexe les utilisateurs (seulement ceux avec is_searchable = true)
 export const indexUsers = async (data) => {
   return await index.addDocuments(data, { primaryKey: "id" });
 };
 
-export const searchInUsers = async (query, options = {}) => {
+// Supprime un utilisateur de l'index
+export const removeUserFromIndex = async (userId) => {
   try {
-    const searchParams = { q: query };
+    return await index.deleteDocument(userId);
+  } catch (error) {
+    if (error.code === "index_not_found") return null;
+    throw error;
+  }
+};
 
-    // Si hybrid est activé, utiliser la recherche IA
-    if (options.hybrid) {
-      searchParams.hybrid = {
+// Recherche enrichie : combine le profil du chercheur (A) + sa requête pour trouver B
+export const searchUsersEnriched = async (searcherProfile, query, options = {}) => {
+  try {
+    // Construire une requête enrichie avec le contexte du chercheur
+    const enrichedQuery = buildEnrichedQuery(searcherProfile, query);
+    
+    const searchParams = {
+      hybrid: {
         embedder: "users-openai",
-        semanticRatio: options.semanticRatio || 0.5, // 50% sémantique, 50% texte
-      };
+        semanticRatio: options.semanticRatio || 0.7,
+      },
+      limit: options.limit || 20,
+    };
+
+    // Filtrer par intérêts si spécifié
+    if (options.filterInterests?.length) {
+      searchParams.filter = options.filterInterests
+        .map(i => `interests CONTAINS "${i}"`)
+        .join(" OR ");
     }
 
-    return await index.search(query, searchParams);
+    return await index.search(enrichedQuery, searchParams);
   } catch (error) {
-    // Si l'index n'existe pas encore, retourner un résultat vide
     if (error.code === "index_not_found") {
       return { hits: [], query, limit: 20, offset: 0, estimatedTotalHits: 0 };
     }
@@ -34,16 +48,49 @@ export const searchInUsers = async (query, options = {}) => {
   }
 };
 
-// Nouvelle fonction pour recherche purement sémantique
-export const semanticSearchUsers = async (query, options = {}) => {
+// Construit une requête enrichie à partir du profil du chercheur + sa requête
+const buildEnrichedQuery = (searcherProfile, userQuery) => {
+  const parts = [];
+
+  // Ajouter la requête de l'utilisateur en priorité
+  if (userQuery) parts.push(userQuery);
+
+  // Enrichir avec les intérêts du chercheur
+  if (searcherProfile?.interests?.length) {
+    parts.push(`intérêts: ${searcherProfile.interests.join(", ")}`);
+  }
+
+  // Enrichir avec la bio du chercheur pour trouver des profils compatibles
+  if (searcherProfile?.bio) {
+    parts.push(`compatible avec: ${searcherProfile.bio.slice(0, 100)}`);
+  }
+
+  // Enrichir avec la localisation si pertinent
+  if (searcherProfile?.location) {
+    parts.push(`proche de ${searcherProfile.location}`);
+  }
+
+  return parts.join(" | ");
+};
+
+// Recherche simple (sans enrichissement)
+export const searchUsers = async (query, options = {}) => {
   try {
-    return await index.search(query, {
+    const searchParams = {
       hybrid: {
         embedder: "users-openai",
-        semanticRatio: 1.0, // 100% sémantique
+        semanticRatio: options.semanticRatio || 0.5,
       },
       limit: options.limit || 20,
-    });
+    };
+
+    if (options.filterInterests?.length) {
+      searchParams.filter = options.filterInterests
+        .map(i => `interests CONTAINS "${i}"`)
+        .join(" OR ");
+    }
+
+    return await index.search(query, searchParams);
   } catch (error) {
     if (error.code === "index_not_found") {
       return { hits: [], query, limit: 20, offset: 0, estimatedTotalHits: 0 };
