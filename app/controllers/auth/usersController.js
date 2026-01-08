@@ -222,36 +222,43 @@ export const searchUsers = async (req, res) => {
   }
 };
 
-// Récupérer le profil public d'un utilisateur par ID
+// Récupérer le profil public par ID de profil
 export const getProfileById = async (req, res) => {
   try {
     // Validation du paramètre ID
-    const userId = parseInt(req.params.id, 10);
-    if (isNaN(userId) || userId <= 0) {
-      return res.status(400).json({ error: "ID utilisateur invalide" });
+    const profileId = parseInt(req.params.id, 10);
+    if (isNaN(profileId) || profileId <= 0) {
+      return res.status(400).json({ error: "ID profil invalide" });
     }
 
-    // Récupérer l'utilisateur avec son profil et ses intérêts
-    const user = await User.findByPk(userId, {
-      include: [{ model: Profile, include: [Interest] }],
-      attributes: {
-        exclude: ["password", "firebase_uid", "email"] // Exclusion des champs sensibles
-      }
+    // Récupérer le profil avec l'utilisateur et les intérêts
+    const profile = await Profile.findByPk(profileId, {
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ["password", "firebase_uid", "email"] }
+        },
+        Interest
+      ]
     });
 
-    if (!user) {
-      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    if (!profile) {
+      return res.status(404).json({ error: "Profil non trouvé" });
     }
 
-    // Vérifier que le profil existe et est searchable (visible publiquement)
-    const profile = user.Profile;
-    if (!profile || !profile.is_searchable) {
+    // Vérifier que le profil est searchable (visible publiquement)
+    if (!profile.is_searchable) {
       return res.status(403).json({ error: "Ce profil n'est pas accessible" });
     }
 
-    // Construire la réponse avec profil et ID uniquement
+    // Vérifier que l'utilisateur existe et est actif
+    if (!profile.User || !profile.User.is_active) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Construire la réponse avec user_id et profil
     const publicProfile = {
-      id: user.id,
+      id: profile.User.id,
       profile: {
         id: profile.id,
         first_name: profile.first_name,
