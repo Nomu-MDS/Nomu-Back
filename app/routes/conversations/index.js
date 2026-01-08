@@ -174,21 +174,18 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ error: "Other user not found" });
     }
 
-    // Vérifier que l'utilisateur actuel est un voyageur
-    if (currentUser.role !== "voyageur") {
-      return res.status(403).json({ error: "Only travelers (voyageur) can initiate conversations" });
+    // Vérifier qu'on ne crée pas une conversation avec soi-même
+    if (currentUser.id === otherUser.id) {
+      return res.status(400).json({ error: "Cannot create a conversation with yourself" });
     }
 
-    // Vérifier que l'autre utilisateur est un local
-    if (otherUser.role !== "local") {
-      return res.status(403).json({ error: "You can only contact local users" });
-    }
-
-    // Vérifier qu'une conversation n'existe pas déjà (voyageur → local)
+    // Vérifier qu'une conversation n'existe pas déjà (dans les deux sens)
     let conversation = await Conversation.findOne({
       where: {
-        voyager_id: currentUser.id,
-        local_id: otherUserId,
+        [Op.or]: [
+          { voyager_id: currentUser.id, local_id: otherUserId },
+          { voyager_id: otherUserId, local_id: currentUser.id },
+        ],
       },
     });
 
