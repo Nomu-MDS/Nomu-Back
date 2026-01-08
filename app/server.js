@@ -8,9 +8,10 @@ import authRoutes from "./routes/auth/index.js";
 import localsRoutes from "./routes/meilisearch/locals.js";
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
+import interestsRoutes from "./routes/interests.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
-import { sequelize, User } from "./models/index.js";
-import { indexUsers } from "./services/meilisearch/meiliUserService.js";
+import { sequelize, User, Profile, Interest } from "./models/index.js";
+import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
 
@@ -40,6 +41,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/users", authenticateFirebase, usersRoutes);
+app.use("/interests", interestsRoutes);
 app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateFirebase, conversationsRoutes);
@@ -81,19 +83,19 @@ const setupMeilisearchAI = async () => {
       throw new Error(`Vector store: ${error}`);
     }
 
-    // 2. Configurer l'embedder OpenAI
+    // 2. Configurer l'embedder OpenAI (inclut les intérêts)
     const embedderConfig = {
-      "users-openai": {
+      "profiles-openai": {
         source: "openAi",
         apiKey: OPENAI_API_KEY,
         model: "text-embedding-3-small",
         documentTemplate:
-          "Utilisateur {{doc.name}}, role {{doc.role}}, bio: {{doc.bio}}, basé à {{doc.location}}",
+          "{{doc.name}}, {{doc.location}}. {{doc.biography}}. Intérêts: {{doc.interests}}. {{doc.country}}, {{doc.city}}",
       },
     };
 
     const embedderResponse = await fetch(
-      `${MEILI_HOST}/indexes/users/settings/embedders`,
+      `${MEILI_HOST}/indexes/profiles/settings/embedders`,
       {
         method: "PATCH",
         headers: {
@@ -108,6 +110,16 @@ const setupMeilisearchAI = async () => {
       const error = await embedderResponse.text();
       throw new Error(`Embedder: ${error}`);
     }
+
+    // 3. Configurer les filterable attributes pour filtrer par intérêts
+    await fetch(`${MEILI_HOST}/indexes/profiles/settings/filterable-attributes`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MEILI_API_KEY}`,
+      },
+      body: JSON.stringify(["interests", "location", "country", "city"]),
+    });
 
     console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
   } catch (err) {
@@ -142,27 +154,35 @@ const start = async () => {
     await setupMeilisearchAI();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
-    // Ré-indexer tous les utilisateurs dans Meilisearch au démarrage
+    // Ré-indexer les profils searchable dans Meilisearch
     try {
-      const users = await User.findAll();
-      if (users.length > 0) {
-        const usersData = users.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          location: user.location,
-          bio: user.bio,
+      const profiles = await Profile.findAll({
+        where: { is_searchable: true },
+        include: [
+          { model: User },
+          { model: Interest },
+        ],
+      });
+
+      if (profiles.length > 0) {
+        const profilesData = profiles.map((profile) => ({
+          id: profile.id,
+          user_id: profile.user_id,
+          name: profile.User?.name || "",
+          location: profile.User?.location || profile.city || "",
+          bio: profile.User?.bio || "",
+          biography: profile.biography || "",
+          country: profile.country || "",
+          city: profile.city || "",
+          interests: profile.Interests?.map((i) => i.name).join(", ") || "",
         }));
-        await indexUsers(usersData);
-        console.log(
-          `✅ ${users.length} utilisateur(s) ré-indexé(s) dans Meilisearch`
-        );
+        await indexProfiles(profilesData);
+        console.log(`✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`);
       } else {
-        console.log("ℹ️  Aucun utilisateur à indexer");
+        console.log("ℹ️  Aucun profil searchable à indexer");
       }
     } catch (err) {
-      console.error("⚠️  Erreur lors de la ré-indexation:", err.message);
+      console.error("⚠️  Erreur lors de l'indexation:", err.message);
     }
 
     const PORT = process.env.PORT || 3001;
