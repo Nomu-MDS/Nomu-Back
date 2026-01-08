@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth/index.js";
 import localsRoutes from "./routes/meilisearch/locals.js";
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
+import interestsRoutes from "./routes/interests.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexUsers } from "./services/meilisearch/meiliUserService.js";
@@ -40,6 +41,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/users", authenticateFirebase, usersRoutes);
+app.use("/interests", interestsRoutes);
 app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateFirebase, conversationsRoutes);

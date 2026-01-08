@@ -36,7 +36,9 @@ export const updateProfile = async (req, res) => {
       // Champs User
       name, bio, location,
       // Champs Profile
-      first_name, last_name, age, biography, country, city, image_url, is_searchable
+      first_name, last_name, age, biography, country, city, image_url, is_searchable,
+      // Intérêts
+      interest_ids
     } = req.body;
 
     // Mettre à jour User si nécessaire
@@ -53,6 +55,11 @@ export const updateProfile = async (req, res) => {
       profile = await Profile.create({ user_id: userId, first_name, last_name, age, biography, country, city, image_url, is_searchable });
     } else {
       await profile.update({ first_name, last_name, age, biography, country, city, image_url, is_searchable });
+    }
+
+    // Gérer les intérêts si fournis
+    if (interest_ids && Array.isArray(interest_ids)) {
+      await profile.setInterests(interest_ids);
     }
 
     // Si is_searchable a changé, gérer l'indexation
@@ -73,12 +80,55 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // Retourner user + profile
-    const updatedUser = await User.findByPk(userId, { include: [Profile] });
+    // Retourner user + profile + intérêts
+    const updatedUser = await User.findByPk(userId, {
+      include: [{ model: Profile, include: [Interest] }],
+    });
     res.json(updatedUser);
   } catch (err) {
     console.error("Erreur updateProfile:", err);
     res.status(500).json({ error: "Erreur mise à jour profil" });
+  }
+};
+
+// Gérer uniquement les intérêts du profil
+export const updateInterests = async (req, res) => {
+  try {
+    const userId = req.user.dbUser.id;
+    const { interest_ids } = req.body;
+
+    if (!interest_ids || !Array.isArray(interest_ids)) {
+      return res.status(400).json({ error: "interest_ids doit être un tableau" });
+    }
+
+    let profile = await Profile.findOne({ where: { user_id: userId } });
+    if (!profile) {
+      profile = await Profile.create({ user_id: userId });
+    }
+
+    await profile.setInterests(interest_ids);
+
+    // Ré-indexer si searchable
+    if (profile.is_searchable) {
+      const user = await User.findByPk(userId, {
+        include: [{ model: Profile, include: [Interest] }],
+      });
+      await indexUsers([{
+        id: user.id,
+        name: user.name,
+        location: user.location,
+        bio: user.bio,
+        interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
+      }]);
+    }
+
+    const updatedProfile = await Profile.findByPk(profile.id, {
+      include: [Interest],
+    });
+    res.json(updatedProfile);
+  } catch (err) {
+    console.error("Erreur updateInterests:", err);
+    res.status(500).json({ error: "Erreur mise à jour intérêts" });
   }
 };
 

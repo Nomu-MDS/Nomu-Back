@@ -1,7 +1,7 @@
 // Routes utilisateurs
 import express from "express";
-import { createUser, searchUsers, toggleSearchable, updateProfile } from "../../controllers/auth/usersController.js";
-import { User, Profile } from "../../models/index.js";
+import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests } from "../../controllers/auth/usersController.js";
+import { User, Profile, Interest } from "../../models/index.js";
 
 const router = express.Router();
 
@@ -10,7 +10,7 @@ router.get("/me", async (req, res) => {
   try {
     const user = await User.findOne({
       where: { firebase_uid: req.user.uid },
-      include: [Profile],
+      include: [{ model: Profile, include: [Interest] }],
     });
     if (!user) return res.status(404).json({ error: "Utilisateur non trouvé" });
     res.json(user);
@@ -19,8 +19,11 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// PATCH /users/profile : modifier le profil
+// PATCH /users/profile : modifier le profil (+ intérêts optionnels)
 router.patch("/profile", updateProfile);
+
+// PUT /users/profile/interests : modifier uniquement les intérêts
+router.put("/profile/interests", updateInterests);
 
 // PATCH /users/searchable : activer/désactiver la visibilité
 router.patch("/searchable", toggleSearchable);
