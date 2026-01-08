@@ -4,7 +4,7 @@ import tokenService from "../../services/token/tokenService.js";
 // Récupérer le solde de l'utilisateur connecté
 export const getBalance = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.dbUser.id;
     const balance = await tokenService.getBalance(userId);
 
     res.json({ balance });
@@ -17,7 +17,7 @@ export const getBalance = async (req, res) => {
 // Récupérer les détails complets du wallet avec statistiques
 export const getWalletDetails = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.dbUser.id;
     const details = await tokenService.getWalletDetails(userId);
 
     res.json(details);
@@ -30,7 +30,7 @@ export const getWalletDetails = async (req, res) => {
 // Récupérer l'historique des transactions
 export const getHistory = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.dbUser.id;
     const { limit, offset, type } = req.query;
 
     const options = {
