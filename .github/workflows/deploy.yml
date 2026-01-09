@@ -64,6 +64,7 @@ jobs:
           FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
           EOF
+          chmod 600 .env  # <--- AJOUT SÉCURITÉ : Seul l'user 'ci' peut lire
 
       - name: Show generated .env (redacted)
         working-directory: /home/ci/apps/api
