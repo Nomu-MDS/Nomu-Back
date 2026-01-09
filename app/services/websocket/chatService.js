@@ -1,40 +1,35 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
-import minioService from "../storage/minioService.js";
 
 const MAX_MESSAGE_LENGTH = 2000;
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 /**
- * Valide un attachement base64
- * @param {string} attachment - Le string base64 avec le préfixe data:
+ * Valide une URL d'attachment (doit être une URL Minio valide)
+ * @param {string} attachmentUrl - L'URL de l'attachment
  * @returns {{ valid: boolean, error?: string }}
  */
-const validateAttachment = (attachment) => {
-  if (!attachment) return { valid: true };
+const validateAttachmentUrl = (attachmentUrl) => {
+  if (!attachmentUrl) return { valid: true };
 
-  // Vérifier le format data:image/xxx;base64,xxx
-  const match = attachment.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) {
-    return { valid: false, error: "Invalid attachment format" };
+  // Vérifier que c'est une URL valide
+  try {
+    const url = new URL(attachmentUrl);
+    // Vérifier que c'est une URL Minio (localhost:9000 ou le MINIO_PUBLIC_URL configuré)
+    const validHosts = ["localhost:9000", "minio-nomu:9000"];
+    const minioPublicUrl = process.env.MINIO_PUBLIC_URL;
+    if (minioPublicUrl) {
+      const publicUrl = new URL(minioPublicUrl);
+      validHosts.push(publicUrl.host);
+    }
+
+    if (!validHosts.some(host => url.host === host || url.hostname === host.split(":")[0])) {
+      return { valid: false, error: "Invalid attachment URL. Must be uploaded via /upload/message-attachment first." };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: "Invalid attachment URL format" };
   }
-
-  const mimeType = match[1];
-  const base64Data = match[2];
-
-  // Vérifier le type MIME
-  if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
-    return { valid: false, error: "Only images are allowed (jpeg, png, gif, webp)" };
-  }
-
-  // Calculer la taille approximative (base64 = ~4/3 de la taille originale)
-  const sizeInBytes = (base64Data.length * 3) / 4;
-  if (sizeInBytes > MAX_ATTACHMENT_SIZE) {
-    return { valid: false, error: "Attachment exceeds 10MB limit" };
-  }
-
-  return { valid: true };
 };
 
 export const setupChatHandlers = (io, socket) => {
@@ -97,8 +92,8 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: `Message exceeds ${MAX_MESSAGE_LENGTH} characters limit` });
       }
 
-      // Valider l'attachement
-      const attachmentValidation = validateAttachment(attachment);
+      // Valider l'URL de l'attachment (doit être une URL Minio, pas du base64)
+      const attachmentValidation = validateAttachmentUrl(attachment);
       if (!attachmentValidation.valid) {
         return socket.emit("error", { message: attachmentValidation.error });
       }
@@ -117,24 +112,12 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "Access denied to this conversation" });
       }
 
-      // Upload l'attachment vers Minio si présent
-      let attachmentUrl = null;
-      if (attachment) {
-        try {
-          const result = await minioService.uploadMessageAttachment(conversation_id, attachment);
-          attachmentUrl = result.url;
-        } catch (uploadError) {
-          console.error("Error uploading attachment to Minio:", uploadError);
-          return socket.emit("error", { message: "Failed to upload attachment" });
-        }
-      }
-
-      // Créer le message en DB
+      // Créer le message en DB (attachment est déjà une URL Minio)
       const message = await Message.create({
         user_id: user.id,
         conversation_id,
         content,
-        attachment: attachmentUrl,
+        attachment: attachment || null,
         read: false,
       });
 
