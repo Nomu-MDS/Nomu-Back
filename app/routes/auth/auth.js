@@ -1,7 +1,8 @@
 // Routes d'authentification
 import express from "express";
 import admin from "../../config/firebase.js";
-import { User } from "../../models/index.js";
+import { User, Profile, Wallet } from "../../models/index.js";
+import { indexProfiles } from "../../services/meilisearch/meiliProfileService.js";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 
@@ -9,19 +10,18 @@ const router = express.Router();
 
 // Signup
 router.post("/signup", async (req, res) => {
-  const { name, email, password, role, is_active, bio, location } = req.body;
+  const { name, email, password, role, is_active, is_searchable, bio, location } = req.body;
   try {
-    // Hash du mot de passe avant stockage
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Création de l'utilisateur dans Firebase
+    // Création Firebase
     const userRecord = await admin.auth().createUser({
       email,
       password,
       displayName: name,
     });
 
-    // Création de l'utilisateur dans PostgreSQL
+    // Création User PostgreSQL
     const user = await User.create({
       name,
       email,
@@ -33,18 +33,42 @@ router.post("/signup", async (req, res) => {
       firebase_uid: userRecord.uid,
     });
 
-    // Génération d'un token Firebase
+    // Création Profile avec is_searchable
+    const profile = await Profile.create({
+      user_id: user.id,
+      is_searchable: is_searchable || false,
+    });
+
+    // Création Wallet avec solde initial à 0
+    const wallet = await Wallet.create({
+      user_id: user.id,
+      balance: 0,
+    });
+
+    // Si l'utilisateur veut être visible, indexer le profil dans Meilisearch
+    if (is_searchable) {
+      await indexProfiles([{
+        id: profile.id,
+        user_id: user.id,
+        name: user.name,
+        location: user.location,
+        bio: user.bio,
+        biography: "",
+        country: "",
+        city: "",
+        interests: "",
+      }]);
+    }
+
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
-    res.status(201).json({ user, firebase_uid: userRecord.uid, firebaseToken: customToken });
+    res.status(201).json({ user, profile, wallet, firebase_uid: userRecord.uid, firebaseToken: customToken });
   } catch (err) {
     if (err.code === "auth/email-already-exists") {
-      // Erreur Firebase : email déjà utilisé
       res.status(400).json({ error: "Email already exists in Firebase." });
     } else if (err.name === "SequelizeUniqueConstraintError") {
-      // Erreur PostgreSQL : email déjà utilisé
       res.status(400).json({ error: "Email already exists in PostgreSQL." });
     } else {
-      // Autres erreurs
+      console.error("Erreur signup:", err);
       res.status(500).json({ error: "Erreur création utilisateur." });
     }
   }

@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node app/server.js",
     "dev": "nodemon app/server.js",
+    "seed": "node app/scripts/seedUsers.js",
+    "seed:interests": "node app/scripts/seedInterests.js",
     "setup-ai": "node app/scripts/setupAIEmbedder.js",
     "enable-vector": "node app/scripts/enableVectorStore.js",
     "test": "echo \"Error: no test specified\" && exit 1"

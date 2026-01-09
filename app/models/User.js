@@ -7,7 +7,7 @@ export default (sequelize) => {
     name: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: true },
-    role: { type: DataTypes.STRING, allowNull: false },
+    role: { type: DataTypes.STRING, defaultValue: "user" },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
     bio: { type: DataTypes.TEXT },
     location: { type: DataTypes.STRING },

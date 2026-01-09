@@ -6,6 +6,8 @@ import InterestModel from "./Interest.js";
 import ConversationModel from "./Conversation.js";
 import ReservationModel from "./Reservation.js";
 import MessageModel from "./Message.js";
+import WalletModel from "./Wallet.js";
+import TokenTransactionModel from "./TokenTransaction.js";
 
 const User = UserModel(sequelize);
 const Profile = ProfileModel(sequelize);
@@ -13,6 +15,8 @@ const Interest = InterestModel(sequelize);
 const Conversation = ConversationModel(sequelize);
 const Reservation = ReservationModel(sequelize);
 const Message = MessageModel(sequelize);
+const Wallet = WalletModel(sequelize);
+const TokenTransaction = TokenTransactionModel(sequelize);
 
 // Relations
 User.hasOne(Profile, { foreignKey: "user_id" });
@@ -38,4 +42,11 @@ Message.belongsTo(User, { foreignKey: "user_id", as: "Sender" });
 Conversation.hasMany(Message, { foreignKey: "conversation_id", as: "Messages" });
 Message.belongsTo(Conversation, { foreignKey: "conversation_id", as: "Conversation" });
 
-export { sequelize, User, Profile, Interest, Conversation, Reservation, Message };
+// Relations Wallet & TokenTransaction
+User.hasOne(Wallet, { foreignKey: "user_id", as: "Wallet" });
+Wallet.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(TokenTransaction, { foreignKey: "user_id", as: "TokenTransactions" });
+TokenTransaction.belongsTo(User, { foreignKey: "user_id", as: "User" });
+
+export { sequelize, User, Profile, Interest, Conversation, Reservation, Message, Wallet, TokenTransaction };

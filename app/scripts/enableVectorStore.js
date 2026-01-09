@@ -40,19 +40,19 @@ async function enableVectorStore() {
 
     console.log("🔧 Configuration de l'embedder OpenAI...");
 
-    // Maintenant configurer l'embedder
+    // Maintenant configurer l'embedder pour les profils
     const embedderConfig = {
-      "users-openai": {
+      "profiles-openai": {
         source: "openAi",
         apiKey: process.env.OPENAI_API_KEY,
         model: "text-embedding-3-small",
         documentTemplate:
-          "Utilisateur {{doc.name}}, role {{doc.role}}, bio: {{doc.bio}}, basé à {{doc.location}}",
+          "{{doc.name}}, {{doc.location}}. {{doc.biography}}. Intérêts: {{doc.interests}}. {{doc.country}}, {{doc.city}}",
       },
     };
 
     const embedderResponse = await fetch(
-      `${MEILI_HOST}/indexes/users/settings/embedders`,
+      `${MEILI_HOST}/indexes/profiles/settings/embedders`,
       {
         method: "PATCH",
         headers: {
