@@ -22,6 +22,20 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio-nomu
+    restart: always
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+
   api:
     build:
       context: .
@@ -30,8 +44,16 @@ services:
     depends_on:
       - meilisearch
       - postgres
+      - minio
     env_file:
       - .env
+    environment:
+      - MINIO_ENDPOINT=minio-nomu
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL}
     ports:
       - "127.0.0.1:3001:3001"
     volumes:
@@ -39,3 +61,4 @@ services:
 
 volumes:
   postgres-data:
+  minio-data:
