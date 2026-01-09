@@ -10,7 +10,9 @@ import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
 import tokensRoutes from "./routes/tokens/index.js";
+import uploadRoutes from "./routes/upload/index.js";
 import { authenticateFirebase } from "./middleware/authMiddleware.js";
+import { initBuckets } from "./config/minio.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
@@ -47,6 +49,7 @@ app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateFirebase, conversationsRoutes);
 app.use("/tokens", tokensRoutes);
+app.use("/upload", uploadRoutes);
 
 // Configuration Socket.IO
 io.use(socketAuthMiddleware);
@@ -150,6 +153,14 @@ const start = async () => {
 
     await sequelize.sync({ alter: true });
     console.log("✅ DB synced");
+
+    // Initialiser les buckets Minio
+    try {
+      await initBuckets();
+      console.log("✅ Minio buckets initialized");
+    } catch (err) {
+      console.warn("⚠️  Minio init failed (storage may not work):", err.message);
+    }
 
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
     await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre Meilisearch

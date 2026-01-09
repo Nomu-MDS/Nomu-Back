@@ -1,5 +1,6 @@
 // app/services/websocket/chatService.js
 import { Conversation, Message, User } from "../../models/index.js";
+import minioService from "../storage/minioService.js";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
@@ -116,12 +117,24 @@ export const setupChatHandlers = (io, socket) => {
         return socket.emit("error", { message: "Access denied to this conversation" });
       }
 
+      // Upload l'attachment vers Minio si présent
+      let attachmentUrl = null;
+      if (attachment) {
+        try {
+          const result = await minioService.uploadMessageAttachment(conversation_id, attachment);
+          attachmentUrl = result.url;
+        } catch (uploadError) {
+          console.error("Error uploading attachment to Minio:", uploadError);
+          return socket.emit("error", { message: "Failed to upload attachment" });
+        }
+      }
+
       // Créer le message en DB
       const message = await Message.create({
         user_id: user.id,
         conversation_id,
         content,
-        attachment: attachment || null,
+        attachment: attachmentUrl,
         read: false,
       });
 

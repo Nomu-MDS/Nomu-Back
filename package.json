@@ -33,6 +33,7 @@
     "firebase": "^12.5.0",
     "firebase-admin": "^13.5.0",
     "meilisearch": "^0.32.2",
+    "minio": "^8.0.6",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.1",
