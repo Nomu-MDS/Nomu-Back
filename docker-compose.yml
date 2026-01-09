@@ -64,3 +64,4 @@ services:
 
 volumes:
   postgres-data:
+  meilisearch-data:
