@@ -7,8 +7,8 @@ import { Profile } from "../../models/index.js";
 
 const router = Router();
 
-// Taille maximale des fichiers (10 MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Taille maximale des fichiers (50 MB)
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 // Types MIME autorisés
 const ALLOWED_MIME_TYPES = [

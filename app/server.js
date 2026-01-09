@@ -40,7 +40,7 @@ const io = new Server(httpServer, {
   },
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "70mb" }));
 
 app.use("/auth", authRoutes);
 app.use("/users", authenticateFirebase, usersRoutes);

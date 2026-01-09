@@ -17,7 +17,7 @@ Les fichiers sont stockés sur **Minio** (S3-compatible) et accessibles publique
 - `image/webp`
 
 ### Taille maximale
-- **10 MB** par fichier
+- **50 MB** par fichier
 
 ---
 
