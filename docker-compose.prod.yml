@@ -77,16 +77,16 @@ services:
       - no-new-privileges:true
 
   glances:
-    image: nicolargo/glances:latest-alpine
-    container_name: glances
-    pid: host # Permet de voir les stats du VPS hôte (CPU/RAM réels)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Pour voir les autres conteneurs
-    environment:
-      - GLANCES_OPT=-w # Lance le mode serveur Web
-    networks:
-      - internal # On ne l'expose PAS sur le réseau public web
-    restart: always
+      image: nicolargo/glances:latest  # <--- CORRECTION ICI
+      container_name: glances
+      pid: host
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+      environment:
+        - GLANCES_OPT=-w
+      networks:
+        - internal
+      restart: always
 
 networks:
   web:
