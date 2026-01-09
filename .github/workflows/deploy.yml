@@ -1,0 +1,83 @@
+name: CI/CD - Nomu API
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: nomu-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy on VPS
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create deploy directory
+        run: |
+          mkdir -p /home/ci/apps/api
+
+      - name: Sync project to /home/ci/apps/api
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='logs' \
+            ./ /home/ci/apps/api/
+
+      - name: Generate .env for production
+        working-directory: /home/ci/apps/api
+        run: |
+          cat > .env << 'EOF'
+          # Application
+          NODE_ENV=production
+          PORT=${{ secrets.PORT }}
+          CLIENT_URL=${{ secrets.CLIENT_URL }}
+
+          # PostgreSQL
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=postgres
+          DB_PORT=5432
+
+          # Meilisearch
+          MEILI_HOST=http://meilisearch:7700
+          MEILI_MASTER_KEY=${{ secrets.MEILI_MASTER_KEY }}
+          MEILI_API_KEY=${{ secrets.MEILI_MASTER_KEY }}
+
+          # OpenAI
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+
+          # Firebase (REST auth)
+          FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
+
+          # Firebase Admin SDK
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+          EOF
+
+      - name: Show generated .env (redacted)
+        working-directory: /home/ci/apps/api
+        run: |
+          echo "=== .env preview ==="
+          sed -E 's/(PASSWORD|API_KEY|MASTER_KEY)=.*/\1=***REDACTED***/' .env
+
+      - name: Build & restart stack with Docker Compose
+        working-directory: /home/ci/apps/api
+        run: |
+          docker compose -f docker-compose.prod.yml down --remove-orphans
+          docker compose -f docker-compose.prod.yml up -d --build
+
+      - name: Show running containers
+        working-directory: /home/ci/apps/api
+        run: |
+          docker compose ps

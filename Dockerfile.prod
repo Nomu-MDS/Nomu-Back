@@ -1,0 +1,19 @@
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer uniquement les dépendances de production
+RUN npm ci --omit=dev || npm install --omit=dev
+
+# Copier le reste du code de l'application
+COPY . .
+
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+# Lancer l'application en mode production
+CMD ["npm", "start"]
