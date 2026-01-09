@@ -5,6 +5,7 @@ services:
     restart: always
     depends_on:
       - api
+      - glances
     ports:
       - "80:80"
       - "443:443"
@@ -77,7 +78,7 @@ services:
       - no-new-privileges:true
 
   glances:
-      image: nicolargo/glances:latest  # <--- CORRECTION ICI
+      image: nicolargo/glances:latest
       container_name: glances
       pid: host
       volumes:
@@ -85,7 +86,8 @@ services:
       environment:
         - GLANCES_OPT=-w
       networks:
-        - internal
+        - web
+        - internal 
       restart: always
 
 networks:
