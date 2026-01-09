@@ -69,7 +69,7 @@ jobs:
         working-directory: /home/ci/apps/api
         run: |
           echo "=== .env preview ==="
-          sed -E 's/(PASSWORD|API_KEY|MASTER_KEY)=.*/\1=***REDACTED***/' .env
+          sed -E 's/(PASSWORD|API_KEY|MASTER_KEY|PRIVATE_KEY)=.*/\1=***REDACTED***/' .env
 
       - name: Build & restart stack with Docker Compose
         working-directory: /home/ci/apps/api
