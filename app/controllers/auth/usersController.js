@@ -78,6 +78,7 @@ export const updateProfile = async (req, res) => {
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
           interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
+          image_url: updatedProfile.image_url || "",
         }]);
       } else {
         await removeProfileFromIndex(profile.id);
@@ -127,6 +128,7 @@ export const updateInterests = async (req, res) => {
         country: updatedProfile.country || "",
         city: updatedProfile.city || "",
         interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
+        image_url: updatedProfile.image_url || "",
       }]);
     }
 
@@ -167,6 +169,7 @@ export const toggleSearchable = async (req, res) => {
         country: updatedProfile.country || "",
         city: updatedProfile.city || "",
         interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
+        image_url: updatedProfile.image_url || "",
       }]);
     } else {
       await removeProfileFromIndex(profile.id);
@@ -205,6 +208,7 @@ export const searchUsers = async (req, res) => {
         biography: searcherProfile.biography || "",
         location: searcherProfile.User?.location || searcherProfile.city || "",
         interests: searcherProfile.Interests?.map((i) => i.name) || [],
+        image_url: searcherProfile.image_url || "",
       } : null;
 
       const result = await searchProfilesEnriched(profileData, q || "", options);

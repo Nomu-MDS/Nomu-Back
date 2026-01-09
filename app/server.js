@@ -188,6 +188,7 @@ const start = async () => {
           country: profile.country || "",
           city: profile.city || "",
           interests: profile.Interests?.map((i) => i.name).join(", ") || "",
+          image_url: profile.image_url || "",
         }));
         await indexProfiles(profilesData);
         console.log(`✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`);
