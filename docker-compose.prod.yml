@@ -78,7 +78,7 @@ services:
       - no-new-privileges:true
 
   portainer:
-    image: portainer/portainer-ce:2.19.4-alpine 
+    image: portainer/portainer-ce:alpine
     container_name: portainer
     command: -H unix:///var/run/docker.sock 
     restart: always
