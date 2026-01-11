@@ -5,7 +5,7 @@ services:
     restart: always
     depends_on:
       - api
-      - glances
+      - portainer
     ports:
       - "80:80"
       - "443:443"
@@ -77,18 +77,16 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  glances:
-      image: nicolargo/glances:latest
-      container_name: glances
-      pid: host
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock:ro
-      environment:
-        - GLANCES_OPT=-w
-      networks:
-        - web
-        - internal 
-      restart: always
+  portainer:
+    image: portainer/portainer-ce:2.19.4-alpine 
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock 
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - web 
 
 networks:
   web:
@@ -100,3 +98,4 @@ networks:
 volumes:
   postgres-data:
   meilisearch-data:
+  portainer_data:
