@@ -91,7 +91,22 @@ router.post("/login", async (req, res) => {
     if (data.error) {
       return res.status(401).json({ error: data.error.message });
     }
-    res.json({ idToken: data.idToken, refreshToken: data.refreshToken, email: data.email });
+    
+    // Récupérer les infos complètes de l'utilisateur
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: "Utilisateur non trouvé" });
+    }
+
+    res.json({ 
+      idToken: data.idToken, 
+      refreshToken: data.refreshToken, 
+      email: data.email,
+      user: {
+        name: user.name,
+        role: user.role,
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: "Erreur login utilisateur" });
   }
