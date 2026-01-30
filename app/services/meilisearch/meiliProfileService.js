@@ -1,7 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config();
 // services/meilisearch/meiliProfileService.js
 import { meiliClient } from "../../config/meilisearch.js";
 
-const index = meiliClient.index("profiles");
+const indexName = process.env.MEILI_INDEX_PROFILES;
+console.log(`🗂️  [meiliProfileService] Index utilisé pour les profils : ${indexName}`);
+const index = meiliClient.index(indexName);
 
 // Indexe les profils (seulement ceux avec is_searchable = true)
 export const indexProfiles = async (data) => {

@@ -1,31 +1,8 @@
-import { indexLocals, searchInLocals } from "../../services/meilisearch/meiliService.js";
-import { meiliClient } from "../../config/meilisearch.js";
+// Service Meilisearch pour les locaux supprimé
 
-export const getLocals = async (req, res) => {
-  try {
-    const results = await meiliClient.index("locals").getDocuments();
-    res.status(200).json(results);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération" });
-  }
-};
+// Fonctionnalité désactivée : récupération des locaux via Meilisearch
 
-export const addLocals = async (req, res) => {
-  try {
-    const response = await indexLocals(req.body);
-    res.status(200).json(response);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// Fonctionnalité désactivée : ajout de locaux dans Meilisearch
 
-export const searchLocals = async (req, res) => {
-  try {
-    const query = req.query.q || "";
-    const results = await searchInLocals(query);
-    res.status(200).json(results);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// Fonctionnalité désactivée : recherche de locaux dans Meilisearch
 

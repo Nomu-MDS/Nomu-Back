@@ -1,14 +1,17 @@
 // app/server.js
+
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import dotenv from "dotenv";
 import session from "express-session";
 import passport from "passport";
 import "./config/passport.js";
 import usersRoutes from "./routes/auth/users.js";
 import authRoutes from "./routes/auth/index.js";
-import localsRoutes from "./routes/meilisearch/locals.js";
+// import localsRoutes supprimé (routes locaux supprimées)
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
@@ -16,10 +19,11 @@ import tokensRoutes from "./routes/tokens/index.js";
 import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
+
+// Log du nom de l'index Meilisearch utilisé pour les profils
+console.log(`🗂️  Index Meilisearch profils utilisé : ${process.env.MEILI_INDEX_PROFILES}`);
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
-
-dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
@@ -58,7 +62,7 @@ app.use(passport.session());
 app.use("/auth", authRoutes);
 app.use("/users", authenticateSession, usersRoutes);
 app.use("/interests", interestsRoutes);
-app.use("/locals", localsRoutes);
+// app.use("/locals", localsRoutes); // supprimé : routes locaux supprimées
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateSession, conversationsRoutes);
 app.use("/tokens", tokensRoutes);
@@ -115,7 +119,7 @@ const setupMeilisearchAI = async () => {
     };
 
     const embedderResponse = await fetch(
-      `${MEILI_HOST}/indexes/profiles/settings/embedders`,
+      `${MEILI_HOST}/indexes/${process.env.MEILI_INDEX_PROFILES}/settings/embedders`,
       {
         method: "PATCH",
         headers: {
@@ -132,7 +136,7 @@ const setupMeilisearchAI = async () => {
     }
 
     // 3. Configurer les filterable attributes pour filtrer par intérêts
-    await fetch(`${MEILI_HOST}/indexes/profiles/settings/filterable-attributes`, {
+    await fetch(`${MEILI_HOST}/indexes/${process.env.MEILI_INDEX_PROFILES}/settings/filterable-attributes`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
