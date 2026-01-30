@@ -52,10 +52,10 @@ User.hasMany(TokenTransaction, { foreignKey: "user_id", as: "TokenTransactions" 
 TokenTransaction.belongsTo(User, { foreignKey: "user_id", as: "User" });
 
 // Relations Report
-User.hasMany(Report, { as: "ReportsCreated", foreignKey: "reporterId" });
-User.hasMany(Report, { as: "ReportsReceived", foreignKey: "reportedUserId" });
-Report.belongsTo(User, { as: "Reporter", foreignKey: "reporterId" });
-Report.belongsTo(User, { as: "ReportedUser", foreignKey: "reportedUserId" });
-Report.belongsTo(User, { as: "Reviewer", foreignKey: "reviewedBy" });
+User.hasMany(Report, { as: "ReportsCreated", foreignKey: "reporter_id" });
+User.hasMany(Report, { as: "ReportsReceived", foreignKey: "reported_user_id" });
+Report.belongsTo(User, { as: "Reporter", foreignKey: "reporter_id" });
+Report.belongsTo(User, { as: "ReportedUser", foreignKey: "reported_user_id" });
+Report.belongsTo(User, { as: "Reviewer", foreignKey: "reviewed_by" });
 
 export { sequelize, User, Profile, Interest, Conversation, Reservation, Message, Wallet, TokenTransaction, Report };
