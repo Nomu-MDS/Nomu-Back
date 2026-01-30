@@ -30,7 +30,7 @@ export const adminGetAllReports = async (req, res) => {
           attributes: ['id', 'name', 'email'],
           include: [{
             model: Profile,
-            attributes: ['bio', 'location']
+            attributes: ['biography', 'city', 'country']
           }]
         },
         {
@@ -39,7 +39,7 @@ export const adminGetAllReports = async (req, res) => {
           attributes: ['id', 'name', 'email'],
           include: [{
             model: Profile,
-            attributes: ['bio', 'location']
+            attributes: ['biography', 'city', 'country']
           }]
         },
         {
@@ -51,7 +51,7 @@ export const adminGetAllReports = async (req, res) => {
       ],
       limit,
       offset,
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -86,7 +86,7 @@ export const adminGetReportById = async (req, res) => {
           attributes: ['id', 'name', 'email'],
           include: [{
             model: Profile,
-            attributes: ['bio', 'location', 'is_searchable']
+            attributes: ['biography', 'city', 'country', 'is_searchable']
           }]
         },
         {
@@ -95,7 +95,7 @@ export const adminGetReportById = async (req, res) => {
           attributes: ['id', 'name', 'email', 'is_active', 'role'],
           include: [{
             model: Profile,
-            attributes: ['bio', 'location', 'is_searchable']
+            attributes: ['biography', 'city', 'country', 'is_searchable']
           }]
         },
         {
@@ -123,7 +123,7 @@ export const adminUpdateReportStatus = async (req, res) => {
   try {
     const { reportId } = req.params;
     const { status, adminNotes } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.user.dbUser.id;
 
     // Vérifier que le statut est valide
     const validStatuses = ['pending', 'reviewed', 'resolved', 'dismissed'];

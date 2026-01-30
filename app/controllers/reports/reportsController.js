@@ -4,7 +4,7 @@ import { Report, User, Profile } from "../../models/index.js";
 export const createReport = async (req, res) => {
   try {
     const { reportedUserId, reason, message } = req.body;
-    const reporterId = req.user.id;
+    const reporterId = req.user.dbUser.id;
 
     // Vérifier que l'utilisateur ne se signale pas lui-même
     if (reporterId === reportedUserId) {
@@ -20,7 +20,7 @@ export const createReport = async (req, res) => {
     // Vérifier si un signalement existe déjà
     const existingReport = await Report.findOne({
       where: {
-        reporter_id: reporterId,
+            reporter_id: reporterId,
         reported_user_id: reportedUserId,
         status: 'pending'
       }
@@ -50,7 +50,7 @@ export const createReport = async (req, res) => {
 
 export const getMyReports = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.dbUser.id;
 
     const reports = await Report.findAll({
       where: { reporter_id: userId },
@@ -61,11 +61,11 @@ export const getMyReports = async (req, res) => {
           attributes: ['id', 'name', 'email'],
           include: [{
             model: Profile,
-            attributes: ['bio', 'location']
+            attributes: ['biography', 'city', 'country']
           }]
         }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     res.json(reports);
@@ -78,7 +78,7 @@ export const getMyReports = async (req, res) => {
 export const deleteMyReport = async (req, res) => {
   try {
     const { reportId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.dbUser.id;
 
     const report = await Report.findOne({
       where: {
