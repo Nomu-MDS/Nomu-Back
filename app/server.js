@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import cors from "cors"; // ✅ Ajoute cet import
 import { createServer } from "http";
 import { Server } from "socket.io";
 import session from "express-session";
@@ -11,7 +12,6 @@ import passport from "passport";
 import "./config/passport.js";
 import usersRoutes from "./routes/auth/users.js";
 import authRoutes from "./routes/auth/index.js";
-// import localsRoutes supprimé (routes locaux supprimées)
 import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
@@ -23,28 +23,57 @@ import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 
-// Log du nom de l'index Meilisearch utilisé pour les profils
 console.log(`🗂️  Index Meilisearch profils utilisé : ${process.env.MEILI_INDEX_PROFILES}`);
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
+
 const app = express();
 const httpServer = createServer(app);
 
-// Determine CORS origin securely
-let corsOrigin;
+// ✅ Determine CORS origins (web + mobile)
+let corsOrigins;
 if (process.env.NODE_ENV === "production") {
   if (!process.env.CLIENT_URL) {
     throw new Error("CLIENT_URL must be set in production for CORS security.");
   }
-  corsOrigin = process.env.CLIENT_URL;
+  // En production : autorise ton site web et potentiellement ton app mobile
+  corsOrigins = [
+    process.env.CLIENT_URL, // https://ton-site.com
+    process.env.MOBILE_APP_URL || null // Si tu as une URL spécifique pour React Native
+  ].filter(Boolean);
 } else {
-  corsOrigin = process.env.CLIENT_URL || "*";
+  // En développement : autorise Nuxt (3000) et React Native (peut utiliser Expo sur un autre port)
+  corsOrigins = [
+    "http://localhost:3000", // Nuxt web
+    "http://localhost:8081", // React Native / Expo (port par défaut)
+    "http://localhost:19006", // Expo web
+    "exp://localhost:8081", // Expo protocol
+  ];
 }
 
+// ✅ Configure CORS pour Express (REST API)
+app.use(cors({
+  origin: function (origin, callback) {
+    // Autorise les requêtes sans origin (apps mobiles natives, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (corsOrigins.indexOf(origin) !== -1 || corsOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// ✅ Configure CORS pour Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: corsOrigin,
+    origin: corsOrigins,
     methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
@@ -55,17 +84,21 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "keyboard cat",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === "production" },
+  cookie: { 
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+    httpOnly: true
+  },
 });
 
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Routes
 app.use("/auth", authRoutes);
 app.use("/users", authenticateSession, usersRoutes);
 app.use("/interests", interestsRoutes);
-// app.use("/locals", localsRoutes); // supprimé : routes locaux supprimées
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateSession, conversationsRoutes);
 app.use("/tokens", tokensRoutes);
@@ -219,6 +252,7 @@ const start = async () => {
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`🔌 WebSocket server ready`);
+      console.log(`✅ CORS enabled for: ${corsOrigins.join(", ")}`);
     });
   } catch (err) {
     console.error("Fatal error:", err);
