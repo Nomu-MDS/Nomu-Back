@@ -8,8 +8,11 @@ const router = express.Router();
 // GET /users/me : profil de l'utilisateur connecté
 router.get("/me", async (req, res) => {
   try {
+    const userId = req.user?.dbUser?.id;
+    if (!userId) return res.status(401).json({ error: "Utilisateur non authentifié" });
+
     const user = await User.findOne({
-      where: { firebase_uid: req.user.uid },
+      where: { id: userId },
       include: [{ model: Profile, include: [Interest] }],
     });
     if (!user) return res.status(404).json({ error: "Utilisateur non trouvé" });

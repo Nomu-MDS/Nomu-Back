@@ -5,12 +5,12 @@ import {
     acceptReservation,
     declineReservation
 } from "../../controllers/reservations/reservationController.js";
-import { authenticateFirebase } from "../../middleware/authMiddleware.js";
+import { authenticateSession } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Appliquer le middleware d'authentification à toutes les routes
-router.use(authenticateFirebase);
+router.use(authenticateSession);
 
 router.post("/", createReservation);
 router.get("/me", getMyReservations);

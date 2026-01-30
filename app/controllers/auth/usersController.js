@@ -236,7 +236,7 @@ export const getProfileById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: { exclude: ["password", "firebase_uid", "email"] }
+          attributes: { exclude: ["password", "email"] }
         },
         Interest
       ]

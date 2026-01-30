@@ -1,19 +1,39 @@
-import admin from "../config/firebase.js";
+import jwt from "jsonwebtoken";
 import { User } from "../models/index.js";
 
-export const authenticateFirebase = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Token manquant" });
-  }
-  const idToken = authHeader.split(" ")[1];
+// Session / Passport or JWT based authentication
+export const authenticateSession = async (req, res, next) => {
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const dbUser = await User.findOne({ where: { firebase_uid: decodedToken.uid } });
-    req.user = { ...decodedToken, dbUser };
-    next();
+    // 1) Prefer session-based Passport authentication
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      req.user = { dbUser: req.user };
+      return next();
+    }
+
+    // 2) Fallback to Authorization: Bearer <JWT>
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
+        const payload = jwt.verify(token, secret);
+        const userId = payload.id || payload.userId || payload.sub;
+        if (!userId) return res.status(401).json({ error: "Token invalide" });
+
+        const user = await User.findByPk(userId);
+        if (!user) return res.status(401).json({ error: "Utilisateur introuvable" });
+
+        req.user = { dbUser: user };
+        return next();
+      } catch (err) {
+        return res.status(401).json({ error: "Token invalide" });
+      }
+    }
+
+    return res.status(401).json({ error: "Utilisateur non authentifié" });
   } catch (err) {
-    return res.status(401).json({ error: "Token invalide" });
+    console.error("Erreur authenticateSession:", err);
+    return res.status(500).json({ error: "Erreur vérification session" });
   }
 };
 
