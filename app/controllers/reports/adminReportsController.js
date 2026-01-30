@@ -15,10 +15,10 @@ export const adminGetAllReports = async (req, res) => {
       where.status = req.query.status;
     }
     if (req.query.reportedUserId) {
-      where.reportedUserId = req.query.reportedUserId;
+      where.reported_user_id = req.query.reportedUserId;
     }
     if (req.query.reporterId) {
-      where.reporterId = req.query.reporterId;
+      where.reporter_id = req.query.reporterId;
     }
 
     const { count, rows: reports } = await Report.findAndCountAll({
@@ -51,7 +51,7 @@ export const adminGetAllReports = async (req, res) => {
       ],
       limit,
       offset,
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -139,10 +139,10 @@ export const adminUpdateReportStatus = async (req, res) => {
 
     // Mettre à jour le signalement
     report.status = status;
-    report.reviewedBy = adminId;
-    report.reviewedAt = new Date();
+    report.reviewed_by = adminId;
+    report.reviewed_at = new Date();
     if (adminNotes) {
-      report.adminNotes = adminNotes;
+      report.admin_notes = adminNotes;
     }
 
     await report.save();
@@ -210,8 +210,8 @@ export const adminGetReportsStats = async (req, res) => {
     // Top 10 des utilisateurs les plus signalés
     const mostReportedUsers = await Report.findAll({
       attributes: [
-        'reportedUserId',
-        [User.sequelize.fn('COUNT', User.sequelize.col('reportedUserId')), 'reportCount']
+        'reported_user_id',
+        [User.sequelize.fn('COUNT', User.sequelize.col('reported_user_id')), 'reportCount']
       ],
       include: [
         {
@@ -220,8 +220,8 @@ export const adminGetReportsStats = async (req, res) => {
           attributes: ['id', 'name', 'email']
         }
       ],
-      group: ['reportedUserId', 'ReportedUser.id'],
-      order: [[User.sequelize.literal('COUNT("reportedUserId")'), 'DESC']],
+      group: ['reported_user_id', 'ReportedUser.id'],
+      order: [[User.sequelize.literal('COUNT("reported_user_id")'), 'DESC']],
       limit: 10
     });
 

@@ -3,24 +3,24 @@ import { DataTypes } from "sequelize";
 export default (sequelize) => {
   const Report = sequelize.define('Report', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
     },
-    reporterId: {
-      type: DataTypes.UUID,
+    reporter_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id',
       },
       onDelete: 'CASCADE',
     },
-    reportedUserId: {
-      type: DataTypes.UUID,
+    reported_user_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id',
       },
       onDelete: 'CASCADE',
@@ -37,25 +37,25 @@ export default (sequelize) => {
       type: DataTypes.ENUM('pending', 'reviewed', 'resolved', 'dismissed'),
       defaultValue: 'pending',
     },
-    adminNotes: {
+    admin_notes: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    reviewedBy: {
-      type: DataTypes.UUID,
+    reviewed_by: {
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id',
       },
     },
-    reviewedAt: {
+    reviewed_at: {
       type: DataTypes.DATE,
       allowNull: true,
     },
   }, {
-    tableName: 'Reports',
-    timestamps: true,
+    tableName: 'reports',
+    underscored: true,
   });
 
   return Report;

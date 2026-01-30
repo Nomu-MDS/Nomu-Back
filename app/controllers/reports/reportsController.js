@@ -20,8 +20,8 @@ export const createReport = async (req, res) => {
     // Vérifier si un signalement existe déjà
     const existingReport = await Report.findOne({
       where: {
-        reporterId,
-        reportedUserId,
+        reporter_id: reporterId,
+        reported_user_id: reportedUserId,
         status: 'pending'
       }
     });
@@ -31,8 +31,8 @@ export const createReport = async (req, res) => {
     }
 
     const report = await Report.create({
-      reporterId,
-      reportedUserId,
+      reporter_id: reporterId,
+      reported_user_id: reportedUserId,
       reason,
       message,
       status: 'pending'
@@ -53,7 +53,7 @@ export const getMyReports = async (req, res) => {
     const userId = req.user.id;
 
     const reports = await Report.findAll({
-      where: { reporterId: userId },
+      where: { reporter_id: userId },
       include: [
         {
           model: User,
@@ -65,7 +65,7 @@ export const getMyReports = async (req, res) => {
           }]
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json(reports);
@@ -83,7 +83,7 @@ export const deleteMyReport = async (req, res) => {
     const report = await Report.findOne({
       where: {
         id: reportId,
-        reporterId: userId
+        reporter_id: userId
       }
     });
 
