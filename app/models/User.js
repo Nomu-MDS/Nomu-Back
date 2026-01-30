@@ -11,7 +11,6 @@ export default (sequelize) => {
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
     bio: { type: DataTypes.TEXT },
     location: { type: DataTypes.STRING },
-    firebase_uid: { type: DataTypes.STRING, allowNull: true, unique: true },
   }, {
     tableName: 'users',
     underscored: true

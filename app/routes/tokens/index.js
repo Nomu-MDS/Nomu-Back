@@ -8,18 +8,18 @@ import {
   debitTokens,
   adminAdjustment,
 } from "../../controllers/tokens/tokenController.js";
-import { authenticateFirebase } from "../../middleware/authMiddleware.js";
+import { authenticateSession } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Routes utilisateur (authentifiées)
-router.get("/balance", authenticateFirebase, getBalance);
-router.get("/wallet", authenticateFirebase, getWalletDetails);
-router.get("/history", authenticateFirebase, getHistory);
+router.get("/balance", authenticateSession, getBalance);
+router.get("/wallet", authenticateSession, getWalletDetails);
+router.get("/history", authenticateSession, getHistory);
 
 // Routes admin/système (authentifiées - TODO: ajouter middleware admin)
-router.post("/credit", authenticateFirebase, creditTokens);
-router.post("/debit", authenticateFirebase, debitTokens);
-router.post("/admin/adjustment", authenticateFirebase, adminAdjustment);
+router.post("/credit", authenticateSession, creditTokens);
+router.post("/debit", authenticateSession, debitTokens);
+router.post("/admin/adjustment", authenticateSession, adminAdjustment);
 
 export default router;

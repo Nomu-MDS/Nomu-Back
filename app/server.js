@@ -3,6 +3,9 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import session from "express-session";
+import passport from "passport";
+import "./config/passport.js";
 import usersRoutes from "./routes/auth/users.js";
 import authRoutes from "./routes/auth/index.js";
 import localsRoutes from "./routes/meilisearch/locals.js";
@@ -10,7 +13,7 @@ import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
 import tokensRoutes from "./routes/tokens/index.js";
-import { authenticateFirebase } from "./middleware/authMiddleware.js";
+import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
@@ -40,15 +43,30 @@ const io = new Server(httpServer, {
 
 app.use(express.json());
 
+// Session middleware for Passport (in-memory store; replace for production)
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || "keyboard cat",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === "production" },
+});
+
+app.use(sessionMiddleware);
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use("/auth", authRoutes);
-app.use("/users", authenticateFirebase, usersRoutes);
+app.use("/users", authenticateSession, usersRoutes);
 app.use("/interests", interestsRoutes);
 app.use("/locals", localsRoutes);
 app.use("/reservations", reservationsRoutes);
-app.use("/conversations", authenticateFirebase, conversationsRoutes);
+app.use("/conversations", authenticateSession, conversationsRoutes);
 app.use("/tokens", tokensRoutes);
 
-// Configuration Socket.IO
+// Configuration Socket.IO: rattacher la session express puis authentifier
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
 io.use(socketAuthMiddleware);
 
 io.on("connection", (socket) => {
