@@ -28,7 +28,7 @@ export const adminGetAllUsers = async (req, res) => {
       where,
       include: [
         { model: Profile, attributes: ["id", "is_searchable", "biography"] },
-        { model: Wallet, attributes: ["id", "balance"] },
+        { model: Wallet, as: "Wallet", attributes: ["id", "balance"] },
       ],
       limit,
       offset,
@@ -62,7 +62,7 @@ export const adminGetUserById = async (req, res) => {
     const user = await User.findByPk(id, {
       include: [
         { model: Profile },
-        { model: Wallet },
+        { model: Wallet, as: "Wallet" },
       ],
     });
 
