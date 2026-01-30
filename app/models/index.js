@@ -8,6 +8,7 @@ import ReservationModel from "./Reservation.js";
 import MessageModel from "./Message.js";
 import WalletModel from "./Wallet.js";
 import TokenTransactionModel from "./TokenTransaction.js";
+import ReportModel from "./Report.js";
 
 const User = UserModel(sequelize);
 const Profile = ProfileModel(sequelize);
@@ -17,6 +18,7 @@ const Reservation = ReservationModel(sequelize);
 const Message = MessageModel(sequelize);
 const Wallet = WalletModel(sequelize);
 const TokenTransaction = TokenTransactionModel(sequelize);
+const Report = ReportModel(sequelize);
 
 // Relations
 User.hasOne(Profile, { foreignKey: "user_id" });
@@ -49,4 +51,11 @@ Wallet.belongsTo(User, { foreignKey: "user_id" });
 User.hasMany(TokenTransaction, { foreignKey: "user_id", as: "TokenTransactions" });
 TokenTransaction.belongsTo(User, { foreignKey: "user_id", as: "User" });
 
-export { sequelize, User, Profile, Interest, Conversation, Reservation, Message, Wallet, TokenTransaction };
+// Relations Report
+User.hasMany(Report, { as: "ReportsCreated", foreignKey: "reporterId" });
+User.hasMany(Report, { as: "ReportsReceived", foreignKey: "reportedUserId" });
+Report.belongsTo(User, { as: "Reporter", foreignKey: "reporterId" });
+Report.belongsTo(User, { as: "ReportedUser", foreignKey: "reportedUserId" });
+Report.belongsTo(User, { as: "Reviewer", foreignKey: "reviewedBy" });
+
+export { sequelize, User, Profile, Interest, Conversation, Reservation, Message, Wallet, TokenTransaction, Report };

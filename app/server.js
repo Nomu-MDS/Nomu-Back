@@ -17,6 +17,8 @@ import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
 import tokensRoutes from "./routes/tokens/index.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
+import reportsRoutes from "./routes/reports/index.js";
+import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
@@ -67,7 +69,9 @@ app.use("/interests", interestsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateSession, conversationsRoutes);
 app.use("/tokens", tokensRoutes);
+app.use("/reports", authenticateSession, reportsRoutes);
 app.use("/admin", adminUsersRoutes);
+app.use("/admin/reports", adminReportsRoutes);
 
 // Configuration Socket.IO: rattacher la session express puis authentifier
 io.use((socket, next) => {
