@@ -40,7 +40,7 @@ router.post("/signup", async (req, res, next) => {
         biography: "",
         country: "",
         city: "",
-        interests: "",
+        interests: [],
       }]);
     }
 

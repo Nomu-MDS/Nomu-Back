@@ -289,7 +289,7 @@ async function seed() {
         biography: fullProfile.biography,
         country: fullProfile.country,
         city: fullProfile.city,
-        interests: fullProfile.Interests?.map((i) => i.name).join(", ") || "",
+        interests: fullProfile.Interests?.map((i) => i.name) || [],
       });
 
       console.log(`✅ Créé: ${user.name} (${fullProfile.city})`);
