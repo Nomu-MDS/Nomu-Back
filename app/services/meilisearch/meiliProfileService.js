@@ -39,7 +39,7 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
     // Filtrer par intérêts si spécifié
     if (options.filterInterests?.length) {
       searchParams.filter = options.filterInterests
-        .map(i => `interests CONTAINS "${i}"`)
+        .map(i => `interests = "${i}"`)
         .join(" OR ");
     }
 
@@ -90,7 +90,7 @@ export const searchProfiles = async (query, options = {}) => {
 
     if (options.filterInterests?.length) {
       searchParams.filter = options.filterInterests
-        .map(i => `interests CONTAINS "${i}"`)
+        .map(i => `interests = "${i}"`)
         .join(" OR ");
     }
 

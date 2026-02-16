@@ -77,7 +77,7 @@ export const updateProfile = async (req, res) => {
           biography: updatedProfile.biography || "",
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
-          interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
+          interests: updatedProfile.Interests?.map((i) => i.name) || [],
         }]);
       } else {
         await removeProfileFromIndex(profile.id);
