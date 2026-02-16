@@ -22,12 +22,40 @@ export const removeProfileFromIndex = async (profileId) => {
   }
 };
 
+// Construit le filtre Meilisearch à partir des options
+function buildFilter(options) {
+  const parts = [];
+
+  if (options.filterInterests?.length) {
+    const interestFilter = options.filterInterests
+      .map(i => `interests = "${i}"`)
+      .join(" OR ");
+    parts.push(`(${interestFilter})`);
+  }
+
+  if (options.filterCity?.length) {
+    const cityFilter = options.filterCity
+      .map(c => `city = "${c}"`)
+      .join(" OR ");
+    parts.push(`(${cityFilter})`);
+  }
+
+  if (options.filterCountry?.length) {
+    const countryFilter = options.filterCountry
+      .map(c => `country = "${c}"`)
+      .join(" OR ");
+    parts.push(`(${countryFilter})`);
+  }
+
+  return parts.length ? parts.join(" AND ") : undefined;
+}
+
 // Recherche enrichie : combine le profil du chercheur (A) + sa requête pour trouver B
 export const searchProfilesEnriched = async (searcherProfile, query, options = {}) => {
   try {
     // Construire une requête enrichie avec le contexte du chercheur
     const enrichedQuery = buildEnrichedQuery(searcherProfile, query);
-    
+
     const searchParams = {
       hybrid: {
         embedder: "profiles-openai",
@@ -36,12 +64,8 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
       limit: options.limit || 20,
     };
 
-    // Filtrer par intérêts si spécifié
-    if (options.filterInterests?.length) {
-      searchParams.filter = options.filterInterests
-        .map(i => `interests = "${i}"`)
-        .join(" OR ");
-    }
+    const filter = buildFilter(options);
+    if (filter) searchParams.filter = filter;
 
     return await index.search(enrichedQuery, searchParams);
   } catch (error) {
@@ -88,11 +112,8 @@ export const searchProfiles = async (query, options = {}) => {
       limit: options.limit || 20,
     };
 
-    if (options.filterInterests?.length) {
-      searchParams.filter = options.filterInterests
-        .map(i => `interests = "${i}"`)
-        .join(" OR ");
-    }
+    const filter = buildFilter(options);
+    if (filter) searchParams.filter = filter;
 
     return await index.search(query, searchParams);
   } catch (error) {

@@ -17,6 +17,16 @@ export default (sequelize) => {
       allowNull: false,
       defaultValue: 'pending'
     },
+    creator_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
+    },
     conversation_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

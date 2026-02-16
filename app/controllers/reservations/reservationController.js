@@ -42,6 +42,10 @@ const handleReservationStatusUpdate = async (req, res, status) => {
             return res.status(400).json({ error: "La réservation a déjà été traitée" });
         }
 
+        if (reservation.creator_id === user.id) {
+            return res.status(403).json({ error: "Vous ne pouvez pas accepter ou refuser votre propre réservation" });
+        }
+
         reservation.status = status;
         await reservation.save();
 
@@ -106,6 +110,7 @@ export const createReservation = async (req, res) => {
         const reservation = await Reservation.create({
             title,
             conversation_id,
+            creator_id: user.id,
             price: parsedPrice,
             date,
             end_date,

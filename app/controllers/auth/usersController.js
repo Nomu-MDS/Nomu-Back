@@ -182,10 +182,12 @@ export const toggleSearchable = async (req, res) => {
 // Recherche : enrichie si connecté, sinon simple
 export const searchUsers = async (req, res) => {
   try {
-    const { q, filterInterests, limit } = req.query;
+    const { q, filterInterests, filterCity, filterCountry, limit } = req.query;
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
+      filterCity: filterCity ? filterCity.split(",") : null,
+      filterCountry: filterCountry ? filterCountry.split(",") : null,
     };
 
     // Si connecté, enrichir avec le profil du chercheur
