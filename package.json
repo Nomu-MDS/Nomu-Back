@@ -9,6 +9,7 @@
     "seed": "node app/scripts/seedUsers.js",
     "seed:interests": "node app/scripts/seedInterests.js",
     "reindex": "node app/scripts/reindexProfiles.js",
+    "clean-index": "node app/scripts/cleanDeletedUsers.js",
     "setup-ai": "node app/scripts/setupAIEmbedder.js",
     "enable-vector": "node app/scripts/enableVectorStore.js",
     "test": "vitest run"

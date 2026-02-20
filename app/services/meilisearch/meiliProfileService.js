@@ -22,6 +22,16 @@ export const removeProfileFromIndex = async (profileId) => {
   }
 };
 
+// Vide complètement l'index (utilisé lors de la réindexation complète)
+export const clearIndex = async () => {
+  try {
+    return await index.deleteAllDocuments();
+  } catch (error) {
+    if (error.code === "index_not_found") return null;
+    throw error;
+  }
+};
+
 // Construit le filtre Meilisearch à partir des options
 function buildFilter(options) {
   const parts = [];
