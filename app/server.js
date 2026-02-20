@@ -23,7 +23,9 @@ import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 
-console.log(`🗂️  Index Meilisearch profils utilisé : ${process.env.MEILI_INDEX_PROFILES}`);
+console.log(
+  `🗂️  Index Meilisearch profils utilisé : ${process.env.MEILI_INDEX_PROFILES}`,
+);
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
 
@@ -39,7 +41,7 @@ if (process.env.NODE_ENV === "production") {
   // En production : autorise ton site web et potentiellement ton app mobile
   corsOrigins = [
     process.env.CLIENT_URL, // https://ton-site.com
-    process.env.MOBILE_APP_URL || null // Si tu as une URL spécifique pour React Native
+    process.env.MOBILE_APP_URL || null, // Si tu as une URL spécifique pour React Native
   ].filter(Boolean);
 } else {
   // En développement : autorise Nuxt (3000) et React Native (peut utiliser Expo sur un autre port)
@@ -52,42 +54,48 @@ if (process.env.NODE_ENV === "production") {
 }
 
 // ✅ Configure CORS pour Express (REST API)
-app.use(cors({
-  origin: function (origin, callback) {
-    // Autorise les requêtes sans origin (apps mobiles natives, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (corsOrigins.indexOf(origin) !== -1 || corsOrigins.includes("*")) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Autorise les requêtes sans origin (apps mobiles natives, Postman, etc.)
+      if (!origin) return callback(null, true);
+
+      if (corsOrigins.indexOf(origin) !== -1 || corsOrigins.includes("*")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
+);
 
 // ✅ Configure CORS pour Socket.IO
 const io = new Server(httpServer, {
   cors: {
     origin: corsOrigins,
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
   },
 });
 
 app.use(express.json());
+
+// Endpoint de santé — appelé par Docker pour vérifier que l'API est prête
+// Pas d'auth, pas de session : doit répondre le plus tôt possible
+app.get("/health", (_req, res) => res.sendStatus(200));
 
 // Session middleware for Passport (in-memory store; replace for production)
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "keyboard cat",
   resave: false,
   saveUninitialized: false,
-  cookie: { 
+  cookie: {
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
-    httpOnly: true
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    httpOnly: true,
   },
 });
 
@@ -124,7 +132,7 @@ const setupMeilisearchAI = async () => {
 
   if (!OPENAI_API_KEY) {
     console.log(
-      "⚠️  OPENAI_API_KEY non configurée - recherche sémantique désactivée"
+      "⚠️  OPENAI_API_KEY non configurée - recherche sémantique désactivée",
     );
     return;
   }
@@ -166,7 +174,7 @@ const setupMeilisearchAI = async () => {
           Authorization: `Bearer ${MEILI_API_KEY}`,
         },
         body: JSON.stringify(embedderConfig),
-      }
+      },
     );
 
     if (!embedderResponse.ok) {
@@ -175,14 +183,17 @@ const setupMeilisearchAI = async () => {
     }
 
     // 3. Configurer les filterable attributes pour filtrer par intérêts
-    await fetch(`${MEILI_HOST}/indexes/${process.env.MEILI_INDEX_PROFILES}/settings/filterable-attributes`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${MEILI_API_KEY}`,
+    await fetch(
+      `${MEILI_HOST}/indexes/${process.env.MEILI_INDEX_PROFILES}/settings/filterable-attributes`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MEILI_API_KEY}`,
+        },
+        body: JSON.stringify(["interests", "location", "country", "city"]),
       },
-      body: JSON.stringify(["interests", "location", "country", "city"]),
-    });
+    );
 
     console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
   } catch (err) {
@@ -203,13 +214,23 @@ const start = async () => {
       } catch (err) {
         attempts++;
         console.log(
-          `❌ DB connection failed (attempt ${attempts}/10): ${err.message}`
+          `❌ DB connection failed (attempt ${attempts}/10): ${err.message}`,
         );
         await new Promise((res) => setTimeout(res, 3000));
       }
     }
 
-    await sequelize.sync({ alter: true });
+    if (!connected) {
+      throw new Error(
+        "Impossible de se connecter à PostgreSQL après 10 tentatives.",
+      );
+    }
+
+    // En développement : alter:true adapte les tables aux modèles (pratique pour itérer)
+    // En production  : alter:false — on crée uniquement les tables manquantes,
+    //                  sans jamais modifier les colonnes existantes (évite les corruptions)
+    //                  Les changements de schéma en prod doivent passer par des migrations.
+    await sequelize.sync({ alter: process.env.NODE_ENV !== "production" });
     console.log("✅ DB synced");
 
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
@@ -221,10 +242,7 @@ const start = async () => {
     try {
       const profiles = await Profile.findAll({
         where: { is_searchable: true },
-        include: [
-          { model: User },
-          { model: Interest },
-        ],
+        include: [{ model: User }, { model: Interest }],
       });
 
       if (profiles.length > 0) {
@@ -240,7 +258,9 @@ const start = async () => {
           interests: profile.Interests?.map((i) => i.name) || [],
         }));
         await indexProfiles(profilesData);
-        console.log(`✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`);
+        console.log(
+          `✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`,
+        );
       } else {
         console.log("ℹ️  Aucun profil searchable à indexer");
       }
