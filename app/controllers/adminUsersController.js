@@ -1,6 +1,7 @@
 // controllers/adminUsersController.js
 import { User, Profile, Wallet } from "../models/index.js";
 import { Op } from "sequelize";
+import { removeProfileFromIndex } from "../services/meilisearch/meiliProfileService.js";
 
 // Récupérer tous les utilisateurs avec pagination (admin uniquement)
 export const adminGetAllUsers = async (req, res) => {
@@ -119,6 +120,8 @@ export const adminUpdateUser = async (req, res) => {
     }
 
     // Mise à jour des champs autorisés uniquement
+    const wasActive = user.is_active;
+
     if (is_active !== undefined) {
       user.is_active = is_active;
     }
@@ -127,6 +130,20 @@ export const adminUpdateUser = async (req, res) => {
     }
 
     await user.save();
+
+    // Si l'utilisateur est désactivé, supprimer son profil de l'index Meilisearch
+    if (wasActive && is_active === false) {
+      const profile = await Profile.findOne({ where: { user_id: user.id } });
+      if (profile) {
+        try {
+          await removeProfileFromIndex(profile.id);
+          console.log(`🗑️  Profil supprimé de l'index Meilisearch: user_id ${user.id}`);
+        } catch (indexError) {
+          console.error("Erreur suppression index Meilisearch:", indexError);
+          // Ne pas bloquer la désactivation si l'index échoue
+        }
+      }
+    }
 
     // Recharger l'utilisateur avec ses relations
     const updatedUser = await User.findByPk(id, {
@@ -140,5 +157,47 @@ export const adminUpdateUser = async (req, res) => {
   } catch (err) {
     console.error("Erreur adminUpdateUser:", err);
     res.status(500).json({ error: "Erreur mise à jour utilisateur" });
+  }
+};
+
+// Supprimer un utilisateur (admin uniquement)
+export const adminDeleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      include: [{ model: Profile }],
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    // Empêcher l'admin de se supprimer lui-même
+    if (user.id === req.user.dbUser.id) {
+      return res.status(403).json({
+        error: "Vous ne pouvez pas supprimer votre propre compte"
+      });
+    }
+
+    // Supprimer le profil de l'index Meilisearch si présent
+    if (user.Profile) {
+      try {
+        await removeProfileFromIndex(user.Profile.id);
+        console.log(`🗑️  Profil supprimé de l'index Meilisearch: user_id ${user.id}`);
+      } catch (indexError) {
+        console.error("Erreur suppression index Meilisearch:", indexError);
+        // Ne pas bloquer la suppression si l'index échoue
+      }
+    }
+
+    // Supprimer l'utilisateur (cascade supprimera Profile, Wallet, etc.)
+    await user.destroy();
+
+    console.log(`✅ Utilisateur supprimé: ${user.email} (ID: ${user.id})`);
+    res.json({ message: "Utilisateur supprimé avec succès", deletedUserId: user.id });
+  } catch (err) {
+    console.error("Erreur adminDeleteUser:", err);
+    res.status(500).json({ error: "Erreur suppression utilisateur" });
   }
 };

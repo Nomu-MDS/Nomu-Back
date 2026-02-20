@@ -9,7 +9,7 @@ import {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, password, role, is_active, bio, location } = req.body;
+    const { name, email, password, role, is_active, bio, location, is_searchable } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -18,6 +18,36 @@ export const createUser = async (req, res) => {
 
     const user = await User.create({ name, email, password, role, is_active, bio, location });
     console.log(`✅ Utilisateur créé: ${user.email}`);
+
+    // Créer un profil si is_searchable est fourni
+    if (is_searchable !== undefined) {
+      const profile = await Profile.create({
+        user_id: user.id,
+        is_searchable: is_searchable
+      });
+
+      // Indexer dans Meilisearch si searchable
+      if (is_searchable) {
+        try {
+          await indexProfiles([{
+            id: profile.id,
+            user_id: user.id,
+            name: user.name || "",
+            location: user.location || "",
+            bio: user.bio || "",
+            biography: "",
+            country: "",
+            city: "",
+            interests: [],
+          }]);
+          console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
+        } catch (indexError) {
+          console.error("Erreur indexation Meilisearch:", indexError);
+          // Ne pas bloquer la création de l'utilisateur si l'indexation échoue
+        }
+      }
+    }
+
     res.status(201).json(user);
   } catch (err) {
     console.error("Erreur createUser:", err);
