@@ -22,6 +22,7 @@ import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
+import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
 
 console.log(
   `🗂️  Index Meilisearch profils utilisé : ${process.env.MEILI_INDEX_PROFILES}`,
@@ -238,35 +239,26 @@ const start = async () => {
     await setupMeilisearchAI();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
-    // Ré-indexer les profils searchable dans Meilisearch
+    // Indexation initiale des profils au démarrage
     try {
-      const profiles = await Profile.findAll({
-        where: { is_searchable: true },
-        include: [{ model: User }, { model: Interest }],
-      });
-
-      if (profiles.length > 0) {
-        const profilesData = profiles.map((profile) => ({
-          id: profile.id,
-          user_id: profile.user_id,
-          name: profile.User?.name || "",
-          location: profile.User?.location || profile.city || "",
-          bio: profile.User?.bio || "",
-          biography: profile.biography || "",
-          country: profile.country || "",
-          city: profile.city || "",
-          interests: profile.Interests?.map((i) => i.name) || [],
-        }));
-        await indexProfiles(profilesData);
-        console.log(
-          `✅ ${profiles.length} profil(s) indexé(s) dans Meilisearch`,
-        );
-      } else {
-        console.log("ℹ️  Aucun profil searchable à indexer");
-      }
+      await reindexAllProfiles();
     } catch (err) {
-      console.error("⚠️  Erreur lors de l'indexation:", err.message);
+      console.error("⚠️  Erreur lors de l'indexation initiale:", err.message);
     }
+
+    // Réindexation automatique toutes les 2h pour rester synchronisé avec la DB
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    setInterval(async () => {
+      console.log("🔄 Réindexation automatique des profils (toutes les 2h)...");
+      try {
+        await reindexAllProfiles();
+      } catch (err) {
+        console.error(
+          "⚠️  Erreur lors de la réindexation automatique:",
+          err.message,
+        );
+      }
+    }, TWO_HOURS);
 
     const PORT = process.env.PORT || 3001;
     httpServer.listen(PORT, () => {
