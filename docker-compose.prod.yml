@@ -4,8 +4,12 @@ services:
     container_name: nginx
     restart: always
     depends_on:
-      - api
-      - portainer
+      api:
+        condition: service_healthy
+      adminer:
+        condition: service_healthy
+      portainer:
+        condition: service_started # pas de healthcheck sur portainer
     ports:
       - "80:80"
       - "443:443"
@@ -31,9 +35,7 @@ services:
       - /var/log/nginx
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
+    image: ghcr.io/nomu-mds/nomu-back:latest # image buildée par GitHub Actions et poussée sur GHCR
     container_name: express-api
     env_file:
       - .env
@@ -42,14 +44,23 @@ services:
     expose:
       - "3001"
     depends_on:
-      - postgres
-      - meilisearch
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
     networks:
       - web
       - internal
     restart: always
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      # Appelle le endpoint GET /health ajouté dans server.js
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # laisse le temps au serveur de démarrer et connecter la DB
 
   postgres:
     image: postgres:16
@@ -65,6 +76,14 @@ services:
     restart: always
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      # pg_isready vérifie que postgres accepte des connexions
+      # $$ pour échapper le $ et éviter l'interpolation docker-compose
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   meilisearch:
     image: getmeili/meilisearch:v1.7
@@ -72,23 +91,53 @@ services:
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     volumes:
-      - ./data.ms:/meili_data.ms
+      - meilisearch-data:/meili_data.ms
     networks:
-      - internal
+      - internal # communique avec l'api
+      - web # accès internet sortant pour contacter OpenAI (embeddings)
     restart: always
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      # L'endpoint /health retourne {"status":"available"} quand Meilisearch est prêt
+      test: ["CMD-SHELL", "curl -fs http://localhost:7700/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer-nomu
+    restart: always
+    environment:
+      # Pré-sélectionne PostgreSQL dans le formulaire de login
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - internal # pour atteindre postgres
+      - web # pour que nginx puisse le proxyer
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # Adminer sert une page HTTP sur le port 8080
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   portainer:
     image: portainer/portainer-ce:alpine
     container_name: portainer
-    command: -H unix:///var/run/docker.sock 
+    command: -H unix:///var/run/docker.sock
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
     networks:
-      - web 
+      - web
+    security_opt:
+      - no-new-privileges:true
 
 networks:
   web:

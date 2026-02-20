@@ -10,7 +10,8 @@ const router = express.Router();
 
 // Signup: création user local + profile + wallet, puis login via session
 router.post("/signup", async (req, res, next) => {
-  const { name, email, password, role, is_active, is_searchable, bio, location } = req.body;
+  // role et is_active ne sont jamais acceptés du client — forcés côté serveur
+  const { name, email, password, is_searchable, bio, location } = req.body;
   try {
     const existing = await User.findOne({ where: { email } });
     if (existing) return res.status(409).json({ error: "Email déjà utilisé" });
@@ -21,27 +22,32 @@ router.post("/signup", async (req, res, next) => {
       name,
       email,
       password: hashedPassword,
-      role,
-      is_active,
+      role: "user",
+      is_active: true,
       bio,
       location,
     });
 
-    const profile = await Profile.create({ user_id: user.id, is_searchable: is_searchable || false });
+    const profile = await Profile.create({
+      user_id: user.id,
+      is_searchable: is_searchable || false,
+    });
     const wallet = await Wallet.create({ user_id: user.id, balance: 0 });
 
     if (is_searchable) {
-      await indexProfiles([{
-        id: profile.id,
-        user_id: user.id,
-        name: user.name,
-        location: user.location,
-        bio: user.bio,
-        biography: "",
-        country: "",
-        city: "",
-        interests: [],
-      }]);
+      await indexProfiles([
+        {
+          id: profile.id,
+          user_id: user.id,
+          name: user.name,
+          location: user.location,
+          bio: user.bio,
+          biography: "",
+          country: "",
+          city: "",
+          interests: [],
+        },
+      ]);
     }
 
     // Login automatique après signup
@@ -49,7 +55,11 @@ router.post("/signup", async (req, res, next) => {
       if (err) return next(err);
       // Retourner l'utilisateur (toJSON supprime password)
       // Générer un JWT pour le client (utile si front mobile)
-      const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret", { expiresIn: "7d" });
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret",
+        { expiresIn: "7d" },
+      );
       return res.status(201).json({ user, profile, wallet, token });
     });
   } catch (err) {
@@ -62,11 +72,18 @@ router.post("/signup", async (req, res, next) => {
 router.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
-    if (!user) return res.status(401).json({ error: info?.message || "Authentication failed" });
+    if (!user)
+      return res
+        .status(401)
+        .json({ error: info?.message || "Authentication failed" });
 
     req.login(user, (err) => {
       if (err) return next(err);
-      const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret", { expiresIn: "7d" });
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret",
+        { expiresIn: "7d" },
+      );
       return res.json({ user, token });
     });
   })(req, res, next);
