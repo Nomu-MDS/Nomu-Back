@@ -4,6 +4,7 @@ import {
   adminGetAllUsers,
   adminGetUserById,
   adminUpdateUser,
+  adminDeleteUser,
 } from "../controllers/adminUsersController.js";
 import { authenticateSession, isAdmin } from "../middleware/authMiddleware.js";
 
@@ -18,5 +19,8 @@ router.get("/users/:id", authenticateSession, isAdmin, adminGetUserById);
 
 // PUT /admin/users/:id : mettre à jour un utilisateur (is_active et role uniquement)
 router.put("/users/:id", authenticateSession, isAdmin, adminUpdateUser);
+
+// DELETE /admin/users/:id : supprimer un utilisateur
+router.delete("/users/:id", authenticateSession, isAdmin, adminDeleteUser);
 
 export default router;
