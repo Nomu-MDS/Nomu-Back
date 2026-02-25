@@ -1,22 +1,43 @@
 // controllers/auth/usersController.js
 import { User, Profile, Interest } from "../../models/index.js";
 import {
-  indexUsers,
-  removeUserFromIndex,
-  searchUsersEnriched,
-  searchUsers as searchUsersService,
-} from "../../services/meilisearch/meiliUserService.js";
+  indexProfiles,
+  removeProfileFromIndex,
+  searchProfilesEnriched,
+  searchProfiles as searchProfilesService,
+} from "../../services/meilisearch/meiliProfileService.js";
 
 export const createUser = async (req, res) => {
   try {
-    const { name, first_name, last_name, email, password, role, is_active, bio, location, is_searchable } = req.body;
+    const {
+      name,
+      first_name,
+      last_name,
+      email,
+      password,
+      role,
+      is_active,
+      bio,
+      location,
+      is_searchable,
+    } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
+      return res
+        .status(409)
+        .json({ error: "Email déjà utilisé", field: "email" });
     }
 
-    const user = await User.create({ name, email, password, role, is_active, bio, location });
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+      is_active,
+      bio,
+      location,
+    });
     console.log(`✅ Utilisateur créé: ${user.email}`);
 
     // Toujours créer un profil
@@ -30,17 +51,19 @@ export const createUser = async (req, res) => {
     // Indexer dans Meilisearch uniquement si searchable
     if (is_searchable) {
       try {
-        await indexProfiles([{
-          id: profile.id,
-          user_id: user.id,
-          name: user.name || "",
-          location: user.location || "",
-          bio: user.bio || "",
-          biography: "",
-          country: "",
-          city: "",
-          interests: [],
-        }]);
+        await indexProfiles([
+          {
+            id: profile.id,
+            user_id: user.id,
+            name: user.name || "",
+            location: user.location || "",
+            bio: user.bio || "",
+            biography: "",
+            country: "",
+            city: "",
+            interests: [],
+          },
+        ]);
         console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
       } catch (indexError) {
         console.error("Erreur indexation Meilisearch:", indexError);
@@ -52,7 +75,9 @@ export const createUser = async (req, res) => {
   } catch (err) {
     console.error("Erreur createUser:", err);
     if (err.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
+      return res
+        .status(409)
+        .json({ error: "Email déjà utilisé", field: "email" });
     }
     res.status(500).json({ error: "Erreur création user" });
   }
@@ -64,51 +89,139 @@ export const updateProfile = async (req, res) => {
     const userId = req.user.dbUser.id;
     const {
       // Champs User
-      name, bio, location,
+      name,
+      bio,
+      location,
       // Champs Profile
-      first_name, last_name, age, biography, country, city, image_url, is_searchable
+      first_name,
+      last_name,
+      age,
+      biography,
+      country,
+      city,
+      image_url,
+      is_searchable,
+      // Intérêts
+      interest_ids,
     } = req.body;
 
     // Mettre à jour User si nécessaire
     if (name || bio || location) {
-      await User.update(
-        { name, bio, location },
-        { where: { id: userId } }
-      );
+      await User.update({ name, bio, location }, { where: { id: userId } });
     }
 
     // Mettre à jour Profile
     let profile = await Profile.findOne({ where: { user_id: userId } });
     if (!profile) {
-      profile = await Profile.create({ user_id: userId, first_name, last_name, age, biography, country, city, image_url, is_searchable });
+      profile = await Profile.create({
+        user_id: userId,
+        first_name,
+        last_name,
+        age,
+        biography,
+        country,
+        city,
+        image_url,
+        is_searchable,
+      });
     } else {
-      await profile.update({ first_name, last_name, age, biography, country, city, image_url, is_searchable });
+      await profile.update({
+        first_name,
+        last_name,
+        age,
+        biography,
+        country,
+        city,
+        image_url,
+        is_searchable,
+      });
+    }
+
+    // Gérer les intérêts si fournis
+    if (interest_ids && Array.isArray(interest_ids)) {
+      await profile.setInterests(interest_ids);
     }
 
     // Si is_searchable a changé, gérer l'indexation
     if (is_searchable !== undefined) {
       if (is_searchable) {
-        const user = await User.findByPk(userId, {
-          include: [{ model: Profile, include: [Interest] }],
+        const updatedProfile = await Profile.findByPk(profile.id, {
+          include: [User, Interest],
         });
-        await indexUsers([{
-          id: user.id,
-          name: user.name,
-          location: user.location,
-          bio: user.bio,
-          interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
-        }]);
+        await indexProfiles([
+          {
+            id: updatedProfile.id,
+            user_id: updatedProfile.user_id,
+            name: updatedProfile.User?.name || "",
+            location:
+              updatedProfile.User?.location || updatedProfile.city || "",
+            bio: updatedProfile.User?.bio || "",
+            biography: updatedProfile.biography || "",
+            country: updatedProfile.country || "",
+            city: updatedProfile.city || "",
+            interests: updatedProfile.Interests?.map((i) => i.name) || [],
+          },
+        ]);
       } else {
-        await removeUserFromIndex(userId);
+        await removeProfileFromIndex(profile.id);
       }
     }
 
-    // Retourner user + profile
-    const updatedUser = await User.findByPk(userId, { include: [Profile] });
+    // Retourner user + profile + intérêts
+    const updatedUser = await User.findByPk(userId, {
+      include: [{ model: Profile, include: [Interest] }],
+    });
     res.json(updatedUser);
   } catch (err) {
     console.error("Erreur updateProfile:", err);
     res.status(500).json({ error: "Erreur mise à jour profil" });
+  }
+};
+
+// Gérer uniquement les intérêts du profil
+export const updateInterests = async (req, res) => {
+  try {
+    const userId = req.user.dbUser.id;
+    const { interest_ids } = req.body;
+
+    if (!interest_ids || !Array.isArray(interest_ids)) {
+      return res.status(400).json({ error: "interest_ids doit être un tableau" });
+    }
+
+    let profile = await Profile.findOne({ where: { user_id: userId } });
+    if (!profile) {
+      profile = await Profile.create({ user_id: userId });
+    }
+
+    await profile.setInterests(interest_ids);
+
+    // Ré-indexer si searchable
+    if (profile.is_searchable) {
+      const updatedProfile = await Profile.findByPk(profile.id, {
+        include: [User, Interest],
+      });
+      await indexProfiles([
+        {
+          id: updatedProfile.id,
+          user_id: updatedProfile.user_id,
+          name: updatedProfile.User?.name || "",
+          location: updatedProfile.User?.location || updatedProfile.city || "",
+          bio: updatedProfile.User?.bio || "",
+          biography: updatedProfile.biography || "",
+          country: updatedProfile.country || "",
+          city: updatedProfile.city || "",
+          interests: updatedProfile.Interests?.map((i) => i.name) || [],
+        },
+      ]);
+    }
+
+    const updatedProfile = await Profile.findByPk(profile.id, {
+      include: [Interest],
+    });
+    res.json(updatedProfile);
+  } catch (err) {
+    console.error("Erreur updateInterests:", err);
+    res.status(500).json({ error: "Erreur mise à jour intérêts" });
   }
 };
 
@@ -126,18 +239,24 @@ export const toggleSearchable = async (req, res) => {
     }
 
     if (is_searchable) {
-      const user = await User.findByPk(userId, {
-        include: [{ model: Profile, include: [Interest] }],
+      const updatedProfile = await Profile.findByPk(profile.id, {
+        include: [User, Interest],
       });
-      await indexUsers([{
-        id: user.id,
-        name: user.name,
-        location: user.location,
-        bio: user.bio,
-        interests: user.Profile?.Interests?.map((i) => i.name).join(", ") || "",
-      }]);
+      await indexProfiles([
+        {
+          id: updatedProfile.id,
+          user_id: updatedProfile.user_id,
+          name: updatedProfile.User?.name || "",
+          location: updatedProfile.User?.location || updatedProfile.city || "",
+          bio: updatedProfile.User?.bio || "",
+          biography: updatedProfile.biography || "",
+          country: updatedProfile.country || "",
+          city: updatedProfile.city || "",
+          interests: updatedProfile.Interests?.map((i) => i.name) || [],
+        },
+      ]);
     } else {
-      await removeUserFromIndex(userId);
+      await removeProfileFromIndex(profile.id);
     }
 
     res.json({ is_searchable });
@@ -150,32 +269,43 @@ export const toggleSearchable = async (req, res) => {
 // Recherche : enrichie si connecté, sinon simple
 export const searchUsers = async (req, res) => {
   try {
-    const { q, filterInterests, limit } = req.query;
+    const { q, filterInterests, filterCity, filterCountry, limit } = req.query;
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
+      filterCity: filterCity ? filterCity.split(",") : null,
+      filterCountry: filterCountry ? filterCountry.split(",") : null,
     };
 
     // Si connecté, enrichir avec le profil du chercheur
     const searcherId = req.user?.dbUser?.id;
-    if (searcherId) {
-      const searcher = await User.findByPk(searcherId, {
-        include: [{ model: Profile, include: [Interest] }],
-      });
-      const searcherProfile = searcher ? {
-        bio: searcher.bio,
-        location: searcher.location,
-        interests: searcher.Profile?.Interests?.map((i) => i.name) || [],
-      } : null;
+    let searcherProfileId = null;
 
-      const result = await searchUsersEnriched(searcherProfile, q || "", options);
-      // Exclure le chercheur des résultats
-      result.hits = result.hits.filter((hit) => hit.id !== searcherId);
+    if (searcherId) {
+      const searcherProfile = await Profile.findOne({
+        where: { user_id: searcherId },
+        include: [User, Interest],
+      });
+
+      searcherProfileId = searcherProfile?.id;
+
+      const profileData = searcherProfile
+        ? {
+            bio: searcherProfile.User?.bio || "",
+            biography: searcherProfile.biography || "",
+            location: searcherProfile.User?.location || searcherProfile.city || "",
+            interests: searcherProfile.Interests?.map((i) => i.name) || [],
+          }
+        : null;
+
+      const result = await searchProfilesEnriched(profileData, q || "", options);
+      // Exclure le profil du chercheur des résultats
+      result.hits = result.hits.filter((hit) => hit.id !== searcherProfileId);
       return res.json(result);
     }
 
     // Sinon recherche simple
-    const result = await searchUsersService(q || "", options);
+    const result = await searchProfilesService(q || "", options);
     res.json(result);
   } catch (err) {
     console.error("Erreur searchUsers:", err);
@@ -197,10 +327,10 @@ export const getProfileById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: { exclude: ["password", "email"] }
+          attributes: { exclude: ["password", "email"] },
         },
-        Interest
-      ]
+        Interest,
+      ],
     });
 
     if (!profile) {
@@ -220,7 +350,7 @@ export const getProfileById = async (req, res) => {
     // Construire la réponse avec user_id et profil
     const publicProfile = {
       id: profile.User.id,
-      name: profile.User.name || '',
+      name: profile.User.name || "",
       profile: {
         id: profile.id,
         first_name: profile.first_name,
@@ -230,11 +360,12 @@ export const getProfileById = async (req, res) => {
         country: profile.country,
         city: profile.city,
         image_url: profile.image_url,
-        interests: profile.Interests?.map((interest) => ({
-          id: interest.id,
-          name: interest.name,
-        })) || []
-      }
+        interests:
+          profile.Interests?.map((interest) => ({
+            id: interest.id,
+            name: interest.name,
+          })) || [],
+      },
     };
 
     // Ajouter header de cache pour optimisation (1 heure)

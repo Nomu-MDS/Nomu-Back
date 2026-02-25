@@ -8,30 +8,24 @@ const router = express.Router();
 // GET /conversations - Récupérer toutes les conversations de l'utilisateur
 router.get("/", async (req, res) => {
   try {
-    const userFirebaseUID = req.user.uid;
-
-    // Trouver l'utilisateur dans la DB
-    const user = await User.findOne({ where: { firebase_uid: userFirebaseUID } });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const currentUser = req.user?.dbUser;
+    if (!currentUser) return res.status(401).json({ error: "Utilisateur non authentifié" });
 
     // Récupérer toutes les conversations où l'utilisateur est voyager ou local
     const conversations = await Conversation.findAll({
       where: {
-        [Op.or]: [{ voyager_id: user.id }, { local_id: user.id }],
+        [Op.or]: [{ voyager_id: currentUser.id }, { local_id: currentUser.id }],
       },
       include: [
         {
           model: User,
           as: "Voyager",
-          attributes: ["id", "name", "email", "firebase_uid"],
+          attributes: ["id", "name", "email"],
         },
         {
           model: User,
           as: "Local",
-          attributes: ["id", "name", "email", "firebase_uid"],
+          attributes: ["id", "name", "email"],
         },
         {
           model: Message,
@@ -62,14 +56,8 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const userFirebaseUID = req.user.uid;
-
-    // Trouver l'utilisateur dans la DB
-    const user = await User.findOne({ where: { firebase_uid: userFirebaseUID } });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const currentUser = req.user?.dbUser;
+    if (!currentUser) return res.status(401).json({ error: "Utilisateur non authentifié" });
 
     // Récupérer la conversation
     const conversation = await Conversation.findByPk(id, {
@@ -77,12 +65,12 @@ router.get("/:id", async (req, res) => {
         {
           model: User,
           as: "Voyager",
-          attributes: ["id", "name", "email", "firebase_uid"],
+          attributes: ["id", "name", "email"],
         },
         {
           model: User,
           as: "Local",
-          attributes: ["id", "name", "email", "firebase_uid"],
+          attributes: ["id", "name", "email"],
         },
       ],
     });
@@ -92,7 +80,7 @@ router.get("/:id", async (req, res) => {
     }
 
     // Vérifier que l'utilisateur a accès
-    if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
+    if (conversation.voyager_id !== currentUser.id && conversation.local_id !== currentUser.id) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -108,14 +96,8 @@ router.get("/:id/messages", async (req, res) => {
   try {
     const { id } = req.params;
     const { limit = 50, offset = 0 } = req.query;
-    const userFirebaseUID = req.user.uid;
-
-    // Trouver l'utilisateur dans la DB
-    const user = await User.findOne({ where: { firebase_uid: userFirebaseUID } });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    const currentUser = req.user?.dbUser;
+    if (!currentUser) return res.status(401).json({ error: "Utilisateur non authentifié" });
 
     // Vérifier que la conversation existe et que l'utilisateur y a accès
     const conversation = await Conversation.findByPk(id);
@@ -124,7 +106,7 @@ router.get("/:id/messages", async (req, res) => {
       return res.status(404).json({ error: "Conversation not found" });
     }
 
-    if (conversation.voyager_id !== user.id && conversation.local_id !== user.id) {
+    if (conversation.voyager_id !== currentUser.id && conversation.local_id !== currentUser.id) {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -135,7 +117,7 @@ router.get("/:id/messages", async (req, res) => {
         {
           model: User,
           as: "Sender",
-          attributes: ["id", "name", "email", "firebase_uid"],
+          attributes: ["id", "name", "email"],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -154,17 +136,14 @@ router.get("/:id/messages", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { otherUserId } = req.body;
-    const userFirebaseUID = req.user.uid;
+    const currentUser = req.user?.dbUser;
 
     if (!otherUserId) {
       return res.status(400).json({ error: "otherUserId is required" });
     }
 
-    // Trouver l'utilisateur actuel
-    const currentUser = await User.findOne({ where: { firebase_uid: userFirebaseUID } });
-
     if (!currentUser) {
-      return res.status(404).json({ error: "Current user not found" });
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
     }
 
     // Vérifier que l'autre utilisateur existe
@@ -174,21 +153,18 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ error: "Other user not found" });
     }
 
-    // Vérifier que l'utilisateur actuel est un voyageur
-    if (currentUser.role !== "voyageur") {
-      return res.status(403).json({ error: "Only travelers (voyageur) can initiate conversations" });
+    // Vérifier qu'on ne crée pas une conversation avec soi-même
+    if (currentUser.id === otherUser.id) {
+      return res.status(400).json({ error: "Cannot create a conversation with yourself" });
     }
 
-    // Vérifier que l'autre utilisateur est un local
-    if (otherUser.role !== "local") {
-      return res.status(403).json({ error: "You can only contact local users" });
-    }
-
-    // Vérifier qu'une conversation n'existe pas déjà (voyageur → local)
+    // Vérifier qu'une conversation n'existe pas déjà (dans les deux sens)
     let conversation = await Conversation.findOne({
       where: {
-        voyager_id: currentUser.id,
-        local_id: otherUserId,
+        [Op.or]: [
+          { voyager_id: currentUser.id, local_id: otherUserId },
+          { voyager_id: otherUserId, local_id: currentUser.id },
+        ],
       },
     });
 
@@ -199,12 +175,12 @@ router.post("/", async (req, res) => {
           {
             model: User,
             as: "Voyager",
-            attributes: ["id", "name", "email", "firebase_uid"],
+            attributes: ["id", "name", "email"],
           },
           {
             model: User,
             as: "Local",
-            attributes: ["id", "name", "email", "firebase_uid"],
+            attributes: ["id", "name", "email"],
           },
         ],
       });
@@ -220,16 +196,16 @@ router.post("/", async (req, res) => {
     // Recharger avec les relations
     conversation = await Conversation.findByPk(conversation.id, {
       include: [
-        {
-          model: User,
-          as: "Voyager",
-          attributes: ["id", "name", "email", "firebase_uid"],
-        },
-        {
-          model: User,
-          as: "Local",
-          attributes: ["id", "name", "email", "firebase_uid"],
-        },
+          {
+            model: User,
+            as: "Voyager",
+            attributes: ["id", "name", "email"],
+          },
+          {
+            model: User,
+            as: "Local",
+            attributes: ["id", "name", "email"],
+          },
       ],
     });
 
@@ -244,13 +220,10 @@ router.post("/", async (req, res) => {
 router.patch("/:id/messages/:messageId/read", async (req, res) => {
   try {
     const { id, messageId } = req.params;
-    const userFirebaseUID = req.user.uid;
-
-    // Trouver l'utilisateur
-    const user = await User.findOne({ where: { firebase_uid: userFirebaseUID } });
+    const user = req.user?.dbUser;
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(401).json({ error: "Utilisateur non authentifié" });
     }
 
     // Vérifier que la conversation existe et que l'utilisateur y a accès

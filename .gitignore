@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Environment variables
 .env
@@ -31,3 +30,6 @@ build/
 
 # Claude files
 .claude/
+
+# Firebase service account (do not commit real credentials)
+app/config/firebaseServiceAccount.json

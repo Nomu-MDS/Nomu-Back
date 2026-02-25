@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+# Ensure reproducible, minimal runtime
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy application source
+COPY . .
+
+# Ensure app files are owned by the non-root node user
+RUN chown -R node:node /app
+
+# Drop privileges to non-root for runtime
+USER node
+
+EXPOSE 3001
+
+# Run the application in production mode
+CMD ["npm", "start"]
