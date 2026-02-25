@@ -19,34 +19,32 @@ export const createUser = async (req, res) => {
     const user = await User.create({ name, email, password, role, is_active, bio, location });
     console.log(`✅ Utilisateur créé: ${user.email}`);
 
-    // Créer un profil si is_searchable est fourni
-    if (is_searchable !== undefined) {
-      const profile = await Profile.create({
-        user_id: user.id,
-        is_searchable: is_searchable,
-        first_name: first_name || null,
-        last_name: last_name || null,
-      });
+    // Toujours créer un profil
+    const profile = await Profile.create({
+      user_id: user.id,
+      is_searchable: is_searchable ?? false,
+      first_name: first_name || null,
+      last_name: last_name || null,
+    });
 
-      // Indexer dans Meilisearch si searchable
-      if (is_searchable) {
-        try {
-          await indexProfiles([{
-            id: profile.id,
-            user_id: user.id,
-            name: user.name || "",
-            location: user.location || "",
-            bio: user.bio || "",
-            biography: "",
-            country: "",
-            city: "",
-            interests: [],
-          }]);
-          console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
-        } catch (indexError) {
-          console.error("Erreur indexation Meilisearch:", indexError);
-          // Ne pas bloquer la création de l'utilisateur si l'indexation échoue
-        }
+    // Indexer dans Meilisearch uniquement si searchable
+    if (is_searchable) {
+      try {
+        await indexProfiles([{
+          id: profile.id,
+          user_id: user.id,
+          name: user.name || "",
+          location: user.location || "",
+          bio: user.bio || "",
+          biography: "",
+          country: "",
+          city: "",
+          interests: [],
+        }]);
+        console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
+      } catch (indexError) {
+        console.error("Erreur indexation Meilisearch:", indexError);
+        // Ne pas bloquer la création de l'utilisateur si l'indexation échoue
       }
     }
 
