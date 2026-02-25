@@ -9,7 +9,7 @@ import {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, password, role, is_active, bio, location } = req.body;
+    const { name, first_name, last_name, email, password, role, is_active, bio, location, is_searchable } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -18,6 +18,38 @@ export const createUser = async (req, res) => {
 
     const user = await User.create({ name, email, password, role, is_active, bio, location });
     console.log(`✅ Utilisateur créé: ${user.email}`);
+
+    // Créer un profil si is_searchable est fourni
+    if (is_searchable !== undefined) {
+      const profile = await Profile.create({
+        user_id: user.id,
+        is_searchable: is_searchable,
+        first_name: first_name || null,
+        last_name: last_name || null,
+      });
+
+      // Indexer dans Meilisearch si searchable
+      if (is_searchable) {
+        try {
+          await indexProfiles([{
+            id: profile.id,
+            user_id: user.id,
+            name: user.name || "",
+            location: user.location || "",
+            bio: user.bio || "",
+            biography: "",
+            country: "",
+            city: "",
+            interests: [],
+          }]);
+          console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
+        } catch (indexError) {
+          console.error("Erreur indexation Meilisearch:", indexError);
+          // Ne pas bloquer la création de l'utilisateur si l'indexation échoue
+        }
+      }
+    }
+
     res.status(201).json(user);
   } catch (err) {
     console.error("Erreur createUser:", err);
@@ -153,3 +185,65 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+// Récupérer le profil public par ID de profil
+export const getProfileById = async (req, res) => {
+  try {
+    // Validation du paramètre ID
+    const profileId = parseInt(req.params.id, 10);
+    if (isNaN(profileId) || profileId <= 0) {
+      return res.status(400).json({ error: "ID profil invalide" });
+    }
+
+    // Récupérer le profil avec l'utilisateur et les intérêts
+    const profile = await Profile.findByPk(profileId, {
+      include: [
+        {
+          model: User,
+          attributes: { exclude: ["password", "email"] }
+        },
+        Interest
+      ]
+    });
+
+    if (!profile) {
+      return res.status(404).json({ error: "Profil non trouvé" });
+    }
+
+    // Vérifier que le profil est searchable (visible publiquement)
+    if (!profile.is_searchable) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Vérifier que l'utilisateur existe et est actif
+    if (!profile.User || !profile.User.is_active) {
+      return res.status(403).json({ error: "Ce profil n'est pas accessible" });
+    }
+
+    // Construire la réponse avec user_id et profil
+    const publicProfile = {
+      id: profile.User.id,
+      name: profile.User.name || '',
+      profile: {
+        id: profile.id,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        age: profile.age,
+        biography: profile.biography,
+        country: profile.country,
+        city: profile.city,
+        image_url: profile.image_url,
+        interests: profile.Interests?.map((interest) => ({
+          id: interest.id,
+          name: interest.name,
+        })) || []
+      }
+    };
+
+    // Ajouter header de cache pour optimisation (1 heure)
+    res.set("Cache-Control", "public, max-age=3600");
+    res.json(publicProfile);
+  } catch (err) {
+    console.error("Erreur getProfileById:", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
