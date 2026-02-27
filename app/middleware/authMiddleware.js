@@ -37,6 +37,37 @@ export const authenticateSession = async (req, res, next) => {
   }
 };
 
+// Middleware optionnel : identifie l'utilisateur s'il est connecté, mais ne bloque pas sinon
+export const authenticateOptional = async (req, res, next) => {
+  try {
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      req.user = { dbUser: req.user };
+      return next();
+    }
+
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
+        const payload = jwt.verify(token, secret);
+        const userId = payload.id || payload.userId || payload.sub;
+        if (userId) {
+          const user = await User.findByPk(userId);
+          if (user) req.user = { dbUser: user };
+        }
+      } catch (err) {
+        // Token invalide — on continue sans utilisateur
+      }
+    }
+
+    return next();
+  } catch (err) {
+    console.error("Erreur authenticateOptional:", err);
+    return next();
+  }
+};
+
 // Middleware pour vérifier que l'utilisateur est admin
 export const isAdmin = async (req, res, next) => {
   try {
