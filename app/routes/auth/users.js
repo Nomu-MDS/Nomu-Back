@@ -1,12 +1,13 @@
 // Routes utilisateurs
 import express from "express";
 import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests, getProfileById } from "../../controllers/auth/usersController.js";
+import { authenticateSession } from "../../middleware/authMiddleware.js";
 import { User, Profile, Interest } from "../../models/index.js";
 
 const router = express.Router();
 
 // GET /users/me : profil de l'utilisateur connecté
-router.get("/me", async (req, res) => {
+router.get("/me", authenticateSession, async (req, res) => {
   try {
     const userId = req.user?.dbUser?.id;
     if (!userId) return res.status(401).json({ error: "Utilisateur non authentifié" });
@@ -23,13 +24,13 @@ router.get("/me", async (req, res) => {
 });
 
 // PATCH /users/profile : modifier le profil (+ intérêts optionnels)
-router.patch("/profile", updateProfile);
+router.patch("/profile", authenticateSession, updateProfile);
 
 // PUT /users/profile/interests : modifier uniquement les intérêts
-router.put("/profile/interests", updateInterests);
+router.put("/profile/interests", authenticateSession, updateInterests);
 
 // PATCH /users/searchable : activer/désactiver la visibilité
-router.patch("/searchable", toggleSearchable);
+router.patch("/searchable", authenticateSession, toggleSearchable);
 
 // GET /users/search : recherche (enrichie si connecté)
 router.get("/search", searchUsers);

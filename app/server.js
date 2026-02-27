@@ -19,7 +19,7 @@ import tokensRoutes from "./routes/tokens/index.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
 import reportsRoutes from "./routes/reports/index.js";
 import adminReportsRoutes from "./routes/reports/admin.js";
-import { authenticateSession } from "./middleware/authMiddleware.js";
+import { authenticateSession, authenticateOptional } from "./middleware/authMiddleware.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
@@ -106,7 +106,7 @@ app.use(passport.session());
 
 // Routes
 app.use("/auth", authRoutes);
-app.use("/users", authenticateSession, usersRoutes);
+app.use("/users", authenticateOptional, usersRoutes);
 app.use("/interests", interestsRoutes);
 app.use("/reservations", reservationsRoutes);
 app.use("/conversations", authenticateSession, conversationsRoutes);
