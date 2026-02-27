@@ -1,22 +1,30 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/index.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+
 // Session / Passport or JWT based authentication
 export const authenticateSession = async (req, res, next) => {
   try {
     // 1) Prefer session-based Passport authentication
     if (req.isAuthenticated && req.isAuthenticated()) {
-      req.user = { dbUser: req.user };
+      // Ne pas re-wrapper si authenticateOptional a déjà normalisé req.user
+      if (!req.user?.dbUser) {
+        req.user = { dbUser: req.user };
+      }
       return next();
     }
 
     // 2) Fallback to Authorization: Bearer <JWT>
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      if (!JWT_SECRET) {
+        console.error("JWT_SECRET non configuré");
+        return res.status(500).json({ error: "Configuration serveur invalide" });
+      }
       const token = authHeader.split(" ")[1];
       try {
-        const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
-        const payload = jwt.verify(token, secret);
+        const payload = jwt.verify(token, JWT_SECRET);
         const userId = payload.id || payload.userId || payload.sub;
         if (!userId) return res.status(401).json({ error: "Token invalide" });
 
@@ -40,17 +48,21 @@ export const authenticateSession = async (req, res, next) => {
 // Middleware optionnel : identifie l'utilisateur s'il est connecté, mais ne bloque pas sinon
 export const authenticateOptional = async (req, res, next) => {
   try {
+    // 1) Session Passport
     if (req.isAuthenticated && req.isAuthenticated()) {
-      req.user = { dbUser: req.user };
+      if (!req.user?.dbUser) {
+        req.user = { dbUser: req.user };
+      }
       return next();
     }
 
+    // 2) JWT Bearer
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      if (!JWT_SECRET) return next(); // Pas de secret configuré — on passe sans auth
       const token = authHeader.split(" ")[1];
       try {
-        const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
-        const payload = jwt.verify(token, secret);
+        const payload = jwt.verify(token, JWT_SECRET);
         const userId = payload.id || payload.userId || payload.sub;
         if (userId) {
           const user = await User.findByPk(userId);
