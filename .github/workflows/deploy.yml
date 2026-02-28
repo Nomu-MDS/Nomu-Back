@@ -10,26 +10,92 @@ concurrency:
   group: nomu-api-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  IMAGE: ghcr.io/nomu-mds/nomu-back
+
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1 : Build de l'image Docker sur un runner GitHub (pas le VPS)
+  # ─────────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build & Push image
+    runs-on: ubuntu-latest # runner hébergé par GitHub, zéro impact sur le VPS
+
+    permissions:
+      contents: read
+      packages: write # nécessaire pour pousser sur GHCR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            # Tag avec le SHA court pour la traçabilité (ex: ghcr.io/nomu-mds/nomu-back:a1b2c3d)
+            type=sha,prefix=,format=short
+            # Tag stable "latest" utilisé par docker-compose.prod.yml
+            type=raw,value=latest
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # Cache des layers entre les runs → builds jusqu'à 3x plus rapides
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Delete old image versions (garde les 5 dernières)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: nomu-back
+          package-type: container
+          # Conserve les 5 versions les plus récentes, supprime le reste
+          min-versions-to-keep: 5
+          # Supprime aussi les versions sans tag (layers intermédiaires)
+          delete-untagged-versions: true
+        # Non bloquant : si le nettoyage échoue, le déploiement continue quand même
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2 : Déploiement sur le VPS (démarre après que le build soit terminé)
+  # ─────────────────────────────────────────────────────────────────────────────
   deploy:
-    name: Build & Deploy on VPS
+    name: Deploy on VPS
     runs-on: self-hosted
+    needs: build # attend la fin du Job 1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Create deploy directory
-        run: |
-          mkdir -p /home/ci/apps/api
+        run: mkdir -p /home/ci/apps/api
 
-      - name: Sync project to /home/ci/apps/api
+      - name: Sync project files to /home/ci/apps/api
         run: |
           rsync -a --delete \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='node_modules' \
             --exclude='logs' \
+            --exclude='data.ms' \
             ./ /home/ci/apps/api/
 
       - name: Generate .env for production
@@ -52,18 +118,12 @@ jobs:
           MEILI_HOST=http://meilisearch:7700
           MEILI_MASTER_KEY=${{ secrets.MEILI_MASTER_KEY }}
           MEILI_API_KEY=${{ secrets.MEILI_MASTER_KEY }}
+          MEILI_INDEX_PROFILES=${{ secrets.MEILI_INDEX_PROFILES }}
 
           # OpenAI
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-
-          # Firebase (REST auth)
-          FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
-
-          # Firebase Admin SDK
-          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
           EOF
+          chmod 600 .env
 
       - name: Show generated .env (redacted)
         working-directory: /home/ci/apps/api
@@ -71,13 +131,31 @@ jobs:
           echo "=== .env preview ==="
           sed -E 's/(PASSWORD|API_KEY|MASTER_KEY|PRIVATE_KEY)=.*/\1=***REDACTED***/' .env
 
-      - name: Build & restart stack with Docker Compose
+      - name: Log in to GHCR (pour puller l'image depuis le VPS)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull the new API image from GHCR
         working-directory: /home/ci/apps/api
+        run: docker compose -f docker-compose.prod.yml pull api
+
+      - name: Start / update all services
+        working-directory: /home/ci/apps/api
+        # --no-build : Docker Compose utilise les images déjà présentes (pas de build local)
+        # Docker Compose ne redémarre que les services dont la config ou l'image a changé
+        # → postgres et meilisearch restent en place si rien n'a changé
+        run: docker compose -f docker-compose.prod.yml up -d --no-build
+
+      - name: Reload nginx config (zéro downtime)
+        working-directory: /home/ci/apps/api
+        # nginx -s reload relit la config sans couper les connexions en cours
+        # || true : non bloquant si nginx n'était pas encore démarré (premier déploiement)
         run: |
-          docker compose -f docker-compose.prod.yml down --remove-orphans
-          docker compose -f docker-compose.prod.yml up -d --build
+          docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload || true
 
       - name: Show running containers
         working-directory: /home/ci/apps/api
-        run: |
-          docker compose ps
+        run: docker compose -f docker-compose.prod.yml ps

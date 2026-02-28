@@ -127,7 +127,7 @@ export const setupChatHandlers = (io, socket) => {
           {
             model: User,
             as: "Sender",
-            attributes: ["id", "name", "email", "firebase_uid"],
+            attributes: ["id", "name", "email"],
           },
         ],
       });

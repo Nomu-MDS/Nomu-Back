@@ -1,14 +1,15 @@
 import { Reservation, Conversation, User } from "../../models/index.js";
 import { Op } from "sequelize";
 
-const getUserByFirebaseUid = async (firebaseUid) => {
-    const user = await User.findOne({ where: { firebase_uid: firebaseUid } });
-    if (!user) {
-        const error = new Error("Utilisateur non trouvé");
-        error.statusCode = 404;
-        throw error;
-    }
-    return user;
+const getCurrentUserFromReq = async (req) => {
+    // Si la session Passport est présente, utiliser dbUser
+    const sessionUser = req.user?.dbUser;
+    if (sessionUser) return sessionUser;
+
+    // Si pas de session Passport, retourner erreur (plus de fallback Firebase)
+    const error = new Error("Utilisateur non authentifié");
+    error.statusCode = 401;
+    throw error;
 };
 
 const getReservationWithAccess = async (reservationId, user) => {
@@ -34,11 +35,15 @@ const getReservationWithAccess = async (reservationId, user) => {
 const handleReservationStatusUpdate = async (req, res, status) => {
     try {
         const { id } = req.params;
-        const user = await getUserByFirebaseUid(req.user.uid);
+        const user = await getCurrentUserFromReq(req);
         const reservation = await getReservationWithAccess(id, user);
 
         if (reservation.status !== 'pending') {
             return res.status(400).json({ error: "La réservation a déjà été traitée" });
+        }
+
+        if (reservation.creator_id === user.id) {
+            return res.status(403).json({ error: "Vous ne pouvez pas accepter ou refuser votre propre réservation" });
         }
 
         reservation.status = status;
@@ -56,7 +61,7 @@ const handleReservationStatusUpdate = async (req, res, status) => {
 export const createReservation = async (req, res) => {
     try {
         const { title, conversation_id, price, date, end_date } = req.body;
-        const user = await getUserByFirebaseUid(req.user.uid);
+        const user = await getCurrentUserFromReq(req);
 
         // Validate required fields
         if (!title || !conversation_id || price == null || !date || !end_date) {
@@ -105,6 +110,7 @@ export const createReservation = async (req, res) => {
         const reservation = await Reservation.create({
             title,
             conversation_id,
+            creator_id: user.id,
             price: parsedPrice,
             date,
             end_date,
@@ -120,7 +126,7 @@ export const createReservation = async (req, res) => {
 
 export const getMyReservations = async (req, res) => {
     try {
-        const user = await getUserByFirebaseUid(req.user.uid);
+        const user = await getCurrentUserFromReq(req);
 
         const conversations = await Conversation.findAll({
             where: {

@@ -9,20 +9,75 @@ import {
 
 export const createUser = async (req, res) => {
   try {
-    const { name, email, password, role, is_active, bio, location } = req.body;
+    const {
+      name,
+      first_name,
+      last_name,
+      email,
+      password,
+      role,
+      is_active,
+      bio,
+      location,
+      is_searchable,
+    } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
+      return res
+        .status(409)
+        .json({ error: "Email déjà utilisé", field: "email" });
     }
 
-    const user = await User.create({ name, email, password, role, is_active, bio, location });
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+      is_active,
+      bio,
+      location,
+    });
     console.log(`✅ Utilisateur créé: ${user.email}`);
+
+    // Toujours créer un profil
+    const profile = await Profile.create({
+      user_id: user.id,
+      is_searchable: is_searchable ?? false,
+      first_name: first_name || null,
+      last_name: last_name || null,
+    });
+
+    // Indexer dans Meilisearch uniquement si searchable
+    if (is_searchable) {
+      try {
+        await indexProfiles([
+          {
+            id: profile.id,
+            user_id: user.id,
+            name: user.name || "",
+            location: user.location || "",
+            bio: user.bio || "",
+            biography: "",
+            country: "",
+            city: "",
+            interests: [],
+          },
+        ]);
+        console.log(`🔍 Profil indexé dans Meilisearch: user_id ${user.id}`);
+      } catch (indexError) {
+        console.error("Erreur indexation Meilisearch:", indexError);
+        // Ne pas bloquer la création de l'utilisateur si l'indexation échoue
+      }
+    }
+
     res.status(201).json(user);
   } catch (err) {
     console.error("Erreur createUser:", err);
     if (err.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json({ error: "Email déjà utilisé", field: "email" });
+      return res
+        .status(409)
+        .json({ error: "Email déjà utilisé", field: "email" });
     }
     res.status(500).json({ error: "Erreur création user" });
   }
@@ -34,27 +89,52 @@ export const updateProfile = async (req, res) => {
     const userId = req.user.dbUser.id;
     const {
       // Champs User
-      name, bio, location,
+      name,
+      bio,
+      location,
       // Champs Profile
-      first_name, last_name, age, biography, country, city, image_url, is_searchable,
+      first_name,
+      last_name,
+      age,
+      biography,
+      country,
+      city,
+      image_url,
+      is_searchable,
       // Intérêts
-      interest_ids
+      interest_ids,
     } = req.body;
 
     // Mettre à jour User si nécessaire
     if (name || bio || location) {
-      await User.update(
-        { name, bio, location },
-        { where: { id: userId } }
-      );
+      await User.update({ name, bio, location }, { where: { id: userId } });
     }
 
     // Mettre à jour Profile
     let profile = await Profile.findOne({ where: { user_id: userId } });
     if (!profile) {
-      profile = await Profile.create({ user_id: userId, first_name, last_name, age, biography, country, city, image_url, is_searchable });
+      profile = await Profile.create({
+        user_id: userId,
+        first_name,
+        last_name,
+        age,
+        biography,
+        country,
+        city,
+        image_url,
+        is_searchable,
+      });
     } else {
-      await profile.update({ first_name, last_name, age, biography, country, city, image_url, is_searchable });
+      await profile.update({
+        first_name,
+        last_name,
+        age,
+        biography,
+        country,
+        city,
+        image_url,
+        is_searchable,
+      });
     }
 
     // Gérer les intérêts si fournis
@@ -68,18 +148,20 @@ export const updateProfile = async (req, res) => {
         const updatedProfile = await Profile.findByPk(profile.id, {
           include: [User, Interest],
         });
-        await indexProfiles([{
-          id: updatedProfile.id,
-          user_id: updatedProfile.user_id,
-          name: updatedProfile.User?.name || "",
-          location: updatedProfile.User?.location || updatedProfile.city || "",
-          bio: updatedProfile.User?.bio || "",
-          biography: updatedProfile.biography || "",
-          country: updatedProfile.country || "",
-          city: updatedProfile.city || "",
-          interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
-          image_url: updatedProfile.image_url || "",
-        }]);
+        await indexProfiles([
+          {
+            id: updatedProfile.id,
+            user_id: updatedProfile.user_id,
+            name: updatedProfile.User?.name || "",
+            location: updatedProfile.User?.location || updatedProfile.city || "",
+            bio: updatedProfile.User?.bio || "",
+            biography: updatedProfile.biography || "",
+            country: updatedProfile.country || "",
+            city: updatedProfile.city || "",
+            interests: updatedProfile.Interests?.map((i) => i.name) || [],
+            image_url: updatedProfile.image_url || "",
+          },
+        ]);
       } else {
         await removeProfileFromIndex(profile.id);
       }
@@ -118,18 +200,20 @@ export const updateInterests = async (req, res) => {
       const updatedProfile = await Profile.findByPk(profile.id, {
         include: [User, Interest],
       });
-      await indexProfiles([{
-        id: updatedProfile.id,
-        user_id: updatedProfile.user_id,
-        name: updatedProfile.User?.name || "",
-        location: updatedProfile.User?.location || updatedProfile.city || "",
-        bio: updatedProfile.User?.bio || "",
-        biography: updatedProfile.biography || "",
-        country: updatedProfile.country || "",
-        city: updatedProfile.city || "",
-        interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
-        image_url: updatedProfile.image_url || "",
-      }]);
+      await indexProfiles([
+        {
+          id: updatedProfile.id,
+          user_id: updatedProfile.user_id,
+          name: updatedProfile.User?.name || "",
+          location: updatedProfile.User?.location || updatedProfile.city || "",
+          bio: updatedProfile.User?.bio || "",
+          biography: updatedProfile.biography || "",
+          country: updatedProfile.country || "",
+          city: updatedProfile.city || "",
+          interests: updatedProfile.Interests?.map((i) => i.name) || [],
+          image_url: updatedProfile.image_url || "",
+        },
+      ]);
     }
 
     const updatedProfile = await Profile.findByPk(profile.id, {
@@ -159,18 +243,20 @@ export const toggleSearchable = async (req, res) => {
       const updatedProfile = await Profile.findByPk(profile.id, {
         include: [User, Interest],
       });
-      await indexProfiles([{
-        id: updatedProfile.id,
-        user_id: updatedProfile.user_id,
-        name: updatedProfile.User?.name || "",
-        location: updatedProfile.User?.location || updatedProfile.city || "",
-        bio: updatedProfile.User?.bio || "",
-        biography: updatedProfile.biography || "",
-        country: updatedProfile.country || "",
-        city: updatedProfile.city || "",
-        interests: updatedProfile.Interests?.map((i) => i.name).join(", ") || "",
-        image_url: updatedProfile.image_url || "",
-      }]);
+      await indexProfiles([
+        {
+          id: updatedProfile.id,
+          user_id: updatedProfile.user_id,
+          name: updatedProfile.User?.name || "",
+          location: updatedProfile.User?.location || updatedProfile.city || "",
+          bio: updatedProfile.User?.bio || "",
+          biography: updatedProfile.biography || "",
+          country: updatedProfile.country || "",
+          city: updatedProfile.city || "",
+          interests: updatedProfile.Interests?.map((i) => i.name) || [],
+          image_url: updatedProfile.image_url || "",
+        },
+      ]);
     } else {
       await removeProfileFromIndex(profile.id);
     }
@@ -185,31 +271,35 @@ export const toggleSearchable = async (req, res) => {
 // Recherche : enrichie si connecté, sinon simple
 export const searchUsers = async (req, res) => {
   try {
-    const { q, filterInterests, limit } = req.query;
+    const { q, filterInterests, filterCity, filterCountry, limit } = req.query;
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
+      filterCity: filterCity ? filterCity.split(",") : null,
+      filterCountry: filterCountry ? filterCountry.split(",") : null,
     };
 
     // Si connecté, enrichir avec le profil du chercheur
     const searcherId = req.user?.dbUser?.id;
     let searcherProfileId = null;
-    
+
     if (searcherId) {
       const searcherProfile = await Profile.findOne({
         where: { user_id: searcherId },
         include: [User, Interest],
       });
-      
+
       searcherProfileId = searcherProfile?.id;
-      
-      const profileData = searcherProfile ? {
-        bio: searcherProfile.User?.bio || "",
-        biography: searcherProfile.biography || "",
-        location: searcherProfile.User?.location || searcherProfile.city || "",
-        interests: searcherProfile.Interests?.map((i) => i.name) || [],
-        image_url: searcherProfile.image_url || "",
-      } : null;
+
+      const profileData = searcherProfile
+        ? {
+            bio: searcherProfile.User?.bio || "",
+            biography: searcherProfile.biography || "",
+            location: searcherProfile.User?.location || searcherProfile.city || "",
+            interests: searcherProfile.Interests?.map((i) => i.name) || [],
+            image_url: searcherProfile.image_url || "",
+          }
+        : null;
 
       const result = await searchProfilesEnriched(profileData, q || "", options);
       // Exclure le profil du chercheur des résultats
@@ -240,10 +330,10 @@ export const getProfileById = async (req, res) => {
       include: [
         {
           model: User,
-          attributes: { exclude: ["password", "firebase_uid", "email"] }
+          attributes: { exclude: ["password", "email"] },
         },
-        Interest
-      ]
+        Interest,
+      ],
     });
 
     if (!profile) {
@@ -263,6 +353,7 @@ export const getProfileById = async (req, res) => {
     // Construire la réponse avec user_id et profil
     const publicProfile = {
       id: profile.User.id,
+      name: profile.User.name || "",
       profile: {
         id: profile.id,
         first_name: profile.first_name,
@@ -272,11 +363,12 @@ export const getProfileById = async (req, res) => {
         country: profile.country,
         city: profile.city,
         image_url: profile.image_url,
-        interests: profile.Interests?.map((interest) => ({
-          id: interest.id,
-          name: interest.name,
-        })) || []
-      }
+        interests:
+          profile.Interests?.map((interest) => ({
+            id: interest.id,
+            name: interest.name,
+          })) || [],
+      },
     };
 
     // Ajouter header de cache pour optimisation (1 heure)
@@ -287,4 +379,3 @@ export const getProfileById = async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 };
-

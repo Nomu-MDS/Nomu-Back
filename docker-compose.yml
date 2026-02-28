@@ -86,3 +86,4 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  meilisearch-data:
