@@ -22,7 +22,8 @@ import reportsRoutes from "./routes/reports/index.js";
 import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession, authenticateOptional } from "./middleware/authMiddleware.js";
 import { initBuckets } from "./config/minio.js";
-import { sequelize } from "./models/index.js";
+import { sequelize, User, Profile, Interest } from "./models/index.js";
+import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
 
 console.log(
