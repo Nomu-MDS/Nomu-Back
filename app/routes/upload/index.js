@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { authenticateFirebase } from "../../middleware/authMiddleware.js";
+import { authenticateSession } from "../../middleware/authMiddleware.js";
 import minioService from "../../services/storage/minioService.js";
 import { BUCKETS } from "../../config/minio.js";
 import { Profile } from "../../models/index.js";
@@ -81,7 +81,7 @@ const validateBase64File = (base64String) => {
  * POST /upload/profile-photo
  * Upload une photo de profil (base64 JSON)
  */
-router.post("/profile-photo", authenticateFirebase, async (req, res) => {
+router.post("/profile-photo", authenticateSession, async (req, res) => {
   try {
     const userId = req.user.dbUser.id;
     const { image } = req.body;
@@ -127,7 +127,7 @@ router.post("/profile-photo", authenticateFirebase, async (req, res) => {
  * POST /upload/profile-photo/file
  * Upload une photo de profil (multipart/form-data avec Multer)
  */
-router.post("/profile-photo/file", authenticateFirebase, upload.single("image"), handleMulterError, async (req, res) => {
+router.post("/profile-photo/file", authenticateSession, upload.single("image"), handleMulterError, async (req, res) => {
   try {
     const userId = req.user.dbUser.id;
 
@@ -175,7 +175,7 @@ router.post("/profile-photo/file", authenticateFirebase, upload.single("image"),
  * DELETE /upload/profile-photo
  * Supprime la photo de profil
  */
-router.delete("/profile-photo", authenticateFirebase, async (req, res) => {
+router.delete("/profile-photo", authenticateSession, async (req, res) => {
   try {
     const userId = req.user.dbUser.id;
 
@@ -201,7 +201,7 @@ router.delete("/profile-photo", authenticateFirebase, async (req, res) => {
  * POST /upload/message-attachment
  * Upload une pièce jointe pour un message (base64 JSON)
  */
-router.post("/message-attachment", authenticateFirebase, async (req, res) => {
+router.post("/message-attachment", authenticateSession, async (req, res) => {
   try {
     const { image, conversation_id } = req.body;
 
@@ -234,7 +234,7 @@ router.post("/message-attachment", authenticateFirebase, async (req, res) => {
  * POST /upload/message-attachment/file
  * Upload une pièce jointe pour un message (multipart/form-data avec Multer)
  */
-router.post("/message-attachment/file", authenticateFirebase, upload.single("image"), handleMulterError, async (req, res) => {
+router.post("/message-attachment/file", authenticateSession, upload.single("image"), handleMulterError, async (req, res) => {
   try {
     const { conversation_id } = req.body;
 
