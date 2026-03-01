@@ -44,6 +44,8 @@ services:
       - MINIO_ENDPOINT=minio-nomu
       - MINIO_PORT=9000
       - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
     expose:
       - "3001"
     depends_on:
