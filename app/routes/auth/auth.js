@@ -101,13 +101,17 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secr
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 // Web/mobile redirect — ouvre la page Google
-// ?mobile=1 → redirige vers nomufront:// après auth (Expo WebBrowser)
+// ?mobile=1 → le flag est encodé dans le state OAuth (survit au redirect Google)
 router.get("/google", (req, res, next) => {
-  if (req.query.mobile === "1") req.session.googleOAuthMobile = true;
-  passport.authenticate("google", { scope: ["profile", "email"], state: true })(req, res, next);
+  const mobile = req.query.mobile === "1";
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    state: mobile ? "mobile" : "web",
+  })(req, res, next);
 });
 
 // Callback — Google redirige ici après auth
+// req.query.state contient "mobile" ou "web" (renvoyé intact par Google)
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: `${CLIENT_URL}/login?error=google` }),
@@ -117,8 +121,7 @@ router.get(
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-    if (req.session?.googleOAuthMobile) {
-      req.session.googleOAuthMobile = false;
+    if (req.query.state === "mobile") {
       const isNew = req.user._isNew ? "1" : "0";
       return res.redirect(`nomufront://auth?token=${token}&new=${isNew}`);
     }
