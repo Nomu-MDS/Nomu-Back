@@ -46,6 +46,7 @@ router.post("/signup", async (req, res, next) => {
           country: "",
           city: "",
           interests: [],
+          image_url: "",
         },
       ]);
     }

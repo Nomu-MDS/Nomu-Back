@@ -153,13 +153,13 @@ export const updateProfile = async (req, res) => {
             id: updatedProfile.id,
             user_id: updatedProfile.user_id,
             name: updatedProfile.User?.name || "",
-            location:
-              updatedProfile.User?.location || updatedProfile.city || "",
+            location: updatedProfile.User?.location || updatedProfile.city || "",
             bio: updatedProfile.User?.bio || "",
             biography: updatedProfile.biography || "",
             country: updatedProfile.country || "",
             city: updatedProfile.city || "",
             interests: updatedProfile.Interests?.map((i) => i.name) || [],
+            image_url: updatedProfile.image_url || "",
           },
         ]);
       } else {
@@ -211,6 +211,7 @@ export const updateInterests = async (req, res) => {
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
           interests: updatedProfile.Interests?.map((i) => i.name) || [],
+          image_url: updatedProfile.image_url || "",
         },
       ]);
     }
@@ -253,6 +254,7 @@ export const toggleSearchable = async (req, res) => {
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
           interests: updatedProfile.Interests?.map((i) => i.name) || [],
+          image_url: updatedProfile.image_url || "",
         },
       ]);
     } else {
@@ -295,6 +297,7 @@ export const searchUsers = async (req, res) => {
             biography: searcherProfile.biography || "",
             location: searcherProfile.User?.location || searcherProfile.city || "",
             interests: searcherProfile.Interests?.map((i) => i.name) || [],
+            image_url: searcherProfile.image_url || "",
           }
         : null;
 

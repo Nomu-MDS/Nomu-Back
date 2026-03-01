@@ -18,6 +18,7 @@ services:
     depends_on:
       - meilisearch
       - postgres
+      - minio
     environment:
       - PORT=${PORT}
       - MEILI_HOST=${MEILI_HOST}
@@ -28,6 +29,12 @@ services:
       - DB_HOST=${DB_HOST}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       # (Firebase désactivé)
+      - MINIO_ENDPOINT=minio-nomu
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
     volumes:
       - .:/app               # ⚡ ton code local est monté en direct
       - /app/node_modules    # évite le conflit de dépendances
@@ -59,6 +66,21 @@ services:
     depends_on:
       - postgres
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio-nomu
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+
 volumes:
   postgres-data:
+  minio-data:
   meilisearch-data:

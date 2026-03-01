@@ -16,10 +16,12 @@ import reservationsRoutes from "./routes/reservations/index.js";
 import conversationsRoutes from "./routes/conversations/index.js";
 import interestsRoutes from "./routes/interests.js";
 import tokensRoutes from "./routes/tokens/index.js";
+import uploadRoutes from "./routes/upload/index.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
 import reportsRoutes from "./routes/reports/index.js";
 import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession, authenticateOptional } from "./middleware/authMiddleware.js";
+import { initBuckets } from "./config/minio.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
@@ -82,7 +84,7 @@ const io = new Server(httpServer, {
   },
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "70mb" }));
 
 // Endpoint de santé — appelé par Docker pour vérifier que l'API est prête
 // Pas d'auth, pas de session : doit répondre le plus tôt possible
@@ -114,6 +116,7 @@ app.use("/tokens", tokensRoutes);
 app.use("/reports", authenticateSession, reportsRoutes);
 app.use("/admin", adminUsersRoutes);
 app.use("/admin/reports", adminReportsRoutes);
+app.use("/upload", authenticateSession, uploadRoutes);
 
 // Configuration Socket.IO: rattacher la session express puis authentifier
 io.use((socket, next) => {
@@ -233,6 +236,14 @@ const start = async () => {
     //                  Les changements de schéma en prod doivent passer par des migrations.
     await sequelize.sync({ alter: process.env.NODE_ENV !== "production" });
     console.log("✅ DB synced");
+
+    // Initialiser les buckets Minio
+    try {
+      await initBuckets();
+      console.log("✅ Minio buckets initialized");
+    } catch (err) {
+      console.warn("⚠️  Minio init failed (storage may not work):", err.message);
+    }
 
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
     await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre Meilisearch
