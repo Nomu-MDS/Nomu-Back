@@ -99,9 +99,9 @@ router.post("/profile-photo", authenticateSession, async (req, res) => {
     }
 
     // Supprimer l'ancienne photo si elle existe sur Minio
-    if (profile.image_url && profile.image_url.includes("localhost:9000")) {
+    if (profile.image_url) {
       try {
-        await minioService.deleteByUrl(profile.image_url);
+        await minioService.deleteByUrl(minioService.resolveUrl(profile.image_url));
       } catch (err) {
         console.warn("Could not delete old profile photo:", err.message);
       }
@@ -110,8 +110,8 @@ router.post("/profile-photo", authenticateSession, async (req, res) => {
     // Upload la nouvelle photo
     const result = await minioService.uploadProfilePhoto(userId, image);
 
-    // Mettre à jour le profil
-    await profile.update({ image_url: result.url });
+    // Stocker le path en DB (portable S3/Minio), retourner l'URL complète au client
+    await profile.update({ image_url: result.path });
 
     res.json({
       message: "Profile photo uploaded successfully",
@@ -142,9 +142,9 @@ router.post("/profile-photo/file", authenticateSession, upload.single("image"), 
     }
 
     // Supprimer l'ancienne photo si elle existe sur Minio
-    if (profile.image_url && profile.image_url.includes("localhost:9000")) {
+    if (profile.image_url) {
       try {
-        await minioService.deleteByUrl(profile.image_url);
+        await minioService.deleteByUrl(minioService.resolveUrl(profile.image_url));
       } catch (err) {
         console.warn("Could not delete old profile photo:", err.message);
       }
@@ -158,8 +158,8 @@ router.post("/profile-photo/file", authenticateSession, upload.single("image"), 
       `user_${userId}`
     );
 
-    // Mettre à jour le profil
-    await profile.update({ image_url: result.url });
+    // Stocker le path en DB (portable S3/Minio), retourner l'URL complète au client
+    await profile.update({ image_url: result.path });
 
     res.json({
       message: "Profile photo uploaded successfully",
@@ -184,8 +184,8 @@ router.delete("/profile-photo", authenticateSession, async (req, res) => {
       return res.status(404).json({ error: "Profile not found" });
     }
 
-    if (profile.image_url && profile.image_url.includes("localhost:9000")) {
-      await minioService.deleteByUrl(profile.image_url);
+    if (profile.image_url) {
+      await minioService.deleteByUrl(minioService.resolveUrl(profile.image_url));
     }
 
     await profile.update({ image_url: null });

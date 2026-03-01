@@ -6,6 +6,7 @@ import {
   searchProfilesEnriched,
   searchProfiles as searchProfilesService,
 } from "../../services/meilisearch/meiliProfileService.js";
+import minioService from "../../services/storage/minioService.js";
 
 export const createUser = async (req, res) => {
   try {
@@ -99,11 +100,14 @@ export const updateProfile = async (req, res) => {
       biography,
       country,
       city,
-      image_url,
+      image_url: rawImageUrl,
       is_searchable,
       // Intérêts
       interest_ids,
     } = req.body;
+
+    // Normaliser image_url : stocker le path, pas l'URL complète
+    const image_url = minioService.extractPath(rawImageUrl);
 
     // Mettre à jour User si nécessaire
     if (name || location) {
@@ -174,7 +178,11 @@ export const updateProfile = async (req, res) => {
     const updatedUser = await User.findByPk(userId, {
       include: [{ model: Profile, include: [Interest] }],
     });
-    res.json(updatedUser);
+    const updatedUserJson = updatedUser.toJSON();
+    if (updatedUserJson.Profile?.image_url) {
+      updatedUserJson.Profile.image_url = minioService.resolveUrl(updatedUserJson.Profile.image_url);
+    }
+    res.json(updatedUserJson);
   } catch (err) {
     console.error("Erreur updateProfile:", err);
     res.status(500).json({ error: "Erreur mise à jour profil" });
@@ -372,7 +380,7 @@ export const getProfileById = async (req, res) => {
         biography: profile.biography,
         country: profile.country,
         city: profile.city,
-        image_url: profile.image_url,
+        image_url: minioService.resolveUrl(profile.image_url),
         interests:
           profile.Interests?.map((interest) => ({
             id: interest.id,
