@@ -104,7 +104,7 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 // ?mobile=1 → redirige vers nomufront:// après auth (Expo WebBrowser)
 router.get("/google", (req, res, next) => {
   if (req.query.mobile === "1") req.session.googleOAuthMobile = true;
-  passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+  passport.authenticate("google", { scope: ["profile", "email"], state: true })(req, res, next);
 });
 
 // Callback — Google redirige ici après auth
@@ -133,11 +133,28 @@ router.post("/google/token", async (req, res) => {
   if (!id_token) return res.status(400).json({ error: "id_token requis" });
 
   try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken: id_token,
-      audience: [process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_MOBILE_CLIENT_ID, process.env.GOOGLE_IOS_CLIENT_ID].filter(Boolean),
-    });
-    const { sub: googleId, email, name } = ticket.getPayload();
+    const audiences = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_MOBILE_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+    ].filter(Boolean);
+
+    if (audiences.length === 0) {
+      console.error("[Google token] No GOOGLE_*_CLIENT_ID configured");
+      return res.status(500).json({ error: "Configuration OAuth Google invalide (client_id manquant)" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({ idToken: id_token, audience: audiences });
+    const payload = ticket.getPayload();
+
+    if (!payload?.email) {
+      return res.status(401).json({ error: "Email Google manquant dans le token" });
+    }
+    if (payload.email_verified === false) {
+      return res.status(401).json({ error: "Adresse email Google non vérifiée" });
+    }
+
+    const { sub: googleId, email, name } = payload;
 
     let isNew = false;
     let user = await User.findOne({ where: { google_id: googleId } });
