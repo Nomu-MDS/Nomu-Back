@@ -41,6 +41,9 @@ services:
       - .env
     environment:
       - MEILI_INDEX_PROFILES=${MEILI_INDEX_PROFILES}
+      - MINIO_ENDPOINT=minio-nomu
+      - MINIO_PORT=9000
+      - MINIO_USE_SSL=false
     expose:
       - "3001"
     depends_on:
