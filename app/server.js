@@ -1,7 +1,6 @@
 // app/server.js
 
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config"; // doit être le premier import — charge .env avant tout autre module
 
 import express from "express";
 import cors from "cors"; // ✅ Ajoute cet import

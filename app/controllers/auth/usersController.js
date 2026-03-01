@@ -35,7 +35,6 @@ export const createUser = async (req, res) => {
       password,
       role,
       is_active,
-      bio,
       location,
     });
     console.log(`✅ Utilisateur créé: ${user.email}`);
@@ -44,6 +43,7 @@ export const createUser = async (req, res) => {
     const profile = await Profile.create({
       user_id: user.id,
       is_searchable: is_searchable ?? false,
+      bio: bio || null,
       first_name: first_name || null,
       last_name: last_name || null,
     });
@@ -57,7 +57,7 @@ export const createUser = async (req, res) => {
             user_id: user.id,
             name: user.name || "",
             location: user.location || "",
-            bio: user.bio || "",
+            bio: profile.bio || "",
             biography: "",
             country: "",
             city: "",
@@ -90,9 +90,9 @@ export const updateProfile = async (req, res) => {
     const {
       // Champs User
       name,
-      bio,
       location,
       // Champs Profile
+      bio,
       first_name,
       last_name,
       age,
@@ -106,8 +106,8 @@ export const updateProfile = async (req, res) => {
     } = req.body;
 
     // Mettre à jour User si nécessaire
-    if (name || bio || location) {
-      await User.update({ name, bio, location }, { where: { id: userId } });
+    if (name || location) {
+      await User.update({ name, location }, { where: { id: userId } });
     }
 
     // Mettre à jour Profile
@@ -115,6 +115,7 @@ export const updateProfile = async (req, res) => {
     if (!profile) {
       profile = await Profile.create({
         user_id: userId,
+        bio,
         first_name,
         last_name,
         age,
@@ -126,6 +127,7 @@ export const updateProfile = async (req, res) => {
       });
     } else {
       await profile.update({
+        bio,
         first_name,
         last_name,
         age,
@@ -153,8 +155,9 @@ export const updateProfile = async (req, res) => {
             id: updatedProfile.id,
             user_id: updatedProfile.user_id,
             name: updatedProfile.User?.name || "",
-            location: updatedProfile.User?.location || updatedProfile.city || "",
-            bio: updatedProfile.User?.bio || "",
+            location:
+              updatedProfile.User?.location || updatedProfile.city || "",
+            bio: updatedProfile.bio || "",
             biography: updatedProfile.biography || "",
             country: updatedProfile.country || "",
             city: updatedProfile.city || "",
@@ -185,7 +188,9 @@ export const updateInterests = async (req, res) => {
     const { interest_ids } = req.body;
 
     if (!interest_ids || !Array.isArray(interest_ids)) {
-      return res.status(400).json({ error: "interest_ids doit être un tableau" });
+      return res
+        .status(400)
+        .json({ error: "interest_ids doit être un tableau" });
     }
 
     let profile = await Profile.findOne({ where: { user_id: userId } });
@@ -206,7 +211,7 @@ export const updateInterests = async (req, res) => {
           user_id: updatedProfile.user_id,
           name: updatedProfile.User?.name || "",
           location: updatedProfile.User?.location || updatedProfile.city || "",
-          bio: updatedProfile.User?.bio || "",
+          bio: updatedProfile.bio || "",
           biography: updatedProfile.biography || "",
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
@@ -249,7 +254,7 @@ export const toggleSearchable = async (req, res) => {
           user_id: updatedProfile.user_id,
           name: updatedProfile.User?.name || "",
           location: updatedProfile.User?.location || updatedProfile.city || "",
-          bio: updatedProfile.User?.bio || "",
+          bio: updatedProfile.bio || "",
           biography: updatedProfile.biography || "",
           country: updatedProfile.country || "",
           city: updatedProfile.city || "",
@@ -293,15 +298,20 @@ export const searchUsers = async (req, res) => {
 
       const profileData = searcherProfile
         ? {
-            bio: searcherProfile.User?.bio || "",
+            bio: searcherProfile.bio || "",
             biography: searcherProfile.biography || "",
-            location: searcherProfile.User?.location || searcherProfile.city || "",
+            location:
+              searcherProfile.User?.location || searcherProfile.city || "",
             interests: searcherProfile.Interests?.map((i) => i.name) || [],
             image_url: searcherProfile.image_url || "",
           }
         : null;
 
-      const result = await searchProfilesEnriched(profileData, q || "", options);
+      const result = await searchProfilesEnriched(
+        profileData,
+        q || "",
+        options,
+      );
       // Exclure le profil du chercheur des résultats
       result.hits = result.hits.filter((hit) => hit.id !== searcherProfileId);
       return res.json(result);

@@ -1093,6 +1093,7 @@ async function seed() {
       // Créer le profile complet avec is_searchable
       const profile = await Profile.create({
         user_id: user.id,
+        bio: userFields.bio || null,
         first_name: profileData.first_name,
         last_name: profileData.last_name,
         age: profileData.age,
@@ -1117,7 +1118,7 @@ async function seed() {
         user_id: user.id,
         name: user.name,
         location: user.location,
-        bio: user.bio,
+        bio: fullProfile.bio || "",
         biography: fullProfile.biography,
         country: fullProfile.country,
         city: fullProfile.city,
