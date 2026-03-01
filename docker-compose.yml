@@ -21,8 +21,11 @@ services:
       - minio
     environment:
       - PORT=${PORT}
+      - CLIENT_URL=${CLIENT_URL}
       - MEILI_HOST=${MEILI_HOST}
       - MEILI_API_KEY=${MEILI_API_KEY}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_INDEX_PROFILES=${MEILI_INDEX_PROFILES}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -35,6 +38,13 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL:-http://localhost:9000}
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_MOBILE_CLIENT_ID=${GOOGLE_MOBILE_CLIENT_ID}
+      - GOOGLE_IOS_CLIENT_ID=${GOOGLE_IOS_CLIENT_ID}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
     volumes:
       - .:/app               # ⚡ ton code local est monté en direct
       - /app/node_modules    # évite le conflit de dépendances

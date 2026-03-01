@@ -122,6 +122,25 @@ jobs:
 
           # OpenAI
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+
+          # Auth
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+
+          # Google OAuth
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_MOBILE_CLIENT_ID=${{ secrets.GOOGLE_MOBILE_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          GOOGLE_CALLBACK_URL=${{ secrets.GOOGLE_CALLBACK_URL }}
+
+          # Minio
+          MINIO_ENDPOINT=${{ secrets.MINIO_ENDPOINT }}
+          MINIO_PORT=${{ secrets.MINIO_PORT }}
+          MINIO_USE_SSL=${{ secrets.MINIO_USE_SSL }}
+          MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_PUBLIC_URL=${{ secrets.MINIO_PUBLIC_URL }}
           EOF
           chmod 600 .env
 

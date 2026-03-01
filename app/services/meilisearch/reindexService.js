@@ -37,7 +37,7 @@ export const reindexAllProfiles = async () => {
     user_id: profile.user_id,
     name: profile.User?.name || "",
     location: profile.User?.location || profile.city || "",
-    bio: profile.User?.bio || "",
+    bio: profile.bio || "",
     biography: profile.biography || "",
     country: profile.country || "",
     city: profile.city || "",
