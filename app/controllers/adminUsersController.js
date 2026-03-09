@@ -2,6 +2,7 @@
 import { User, Profile, Wallet } from "../models/index.js";
 import { Op } from "sequelize";
 import { removeProfileFromIndex } from "../services/meilisearch/meiliProfileService.js";
+import { reindexAllProfiles } from "../services/meilisearch/reindexService.js";
 import minioService from "../services/storage/minioService.js";
 
 // Récupérer tous les utilisateurs avec pagination (admin uniquement)
@@ -213,5 +214,18 @@ export const adminDeleteUser = async (req, res) => {
   } catch (err) {
     console.error("Erreur adminDeleteUser:", err);
     res.status(500).json({ error: "Erreur suppression utilisateur" });
+  }
+};
+
+// Réindexer tous les profils dans Meilisearch (admin uniquement)
+export const adminReindexProfiles = async (req, res) => {
+  try {
+    const result = await reindexAllProfiles();
+    const indexed = result?.indexed ?? result;
+    console.log(`✅ Réindexation manuelle déclenchée par admin: ${indexed} profils`);
+    res.json({ success: true, indexed });
+  } catch (err) {
+    console.error("Erreur adminReindexProfiles:", err);
+    res.status(500).json({ error: "Erreur lors de la réindexation" });
   }
 };
