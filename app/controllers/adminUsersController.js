@@ -28,7 +28,7 @@ export const adminGetAllUsers = async (req, res) => {
     const { count, rows: users } = await User.findAndCountAll({
       where,
       include: [
-        { model: Profile, attributes: ["id", "is_searchable", "biography"] },
+        { model: Profile, attributes: ["id", "is_searchable", "biography", "image_url"] },
         { model: Wallet, as: "Wallet", attributes: ["id", "balance"] },
       ],
       limit,
@@ -148,7 +148,7 @@ export const adminUpdateUser = async (req, res) => {
     // Recharger l'utilisateur avec ses relations
     const updatedUser = await User.findByPk(id, {
       include: [
-        { model: Profile, attributes: ["id", "is_searchable", "biography"] },
+        { model: Profile, attributes: ["id", "is_searchable", "biography", "image_url"] },
         { model: Wallet, attributes: ["id", "balance"] },
       ],
     });
