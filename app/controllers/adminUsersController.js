@@ -1,5 +1,5 @@
 // controllers/adminUsersController.js
-import { User, Profile, Wallet } from "../models/index.js";
+import { User, Profile } from "../models/index.js";
 import { Op } from "sequelize";
 import { removeProfileFromIndex } from "../services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "../services/meilisearch/reindexService.js";
@@ -31,7 +31,6 @@ export const adminGetAllUsers = async (req, res) => {
       where,
       include: [
         { model: Profile, attributes: ["id", "is_searchable", "biography", "image_url"] },
-        { model: Wallet, as: "Wallet", attributes: ["id", "balance"] },
       ],
       limit,
       offset,
@@ -73,7 +72,6 @@ export const adminGetUserById = async (req, res) => {
     const user = await User.findByPk(id, {
       include: [
         { model: Profile },
-        { model: Wallet, as: "Wallet" },
       ],
     });
 
@@ -159,7 +157,6 @@ export const adminUpdateUser = async (req, res) => {
     const updatedUser = await User.findByPk(id, {
       include: [
         { model: Profile, attributes: ["id", "is_searchable", "biography", "image_url"] },
-        { model: Wallet, attributes: ["id", "balance"] },
       ],
     });
 
