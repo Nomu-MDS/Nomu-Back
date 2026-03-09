@@ -5,6 +5,7 @@ import {
   adminGetUserById,
   adminUpdateUser,
   adminDeleteUser,
+  adminReindexProfiles,
 } from "../controllers/adminUsersController.js";
 import { authenticateSession, isAdmin } from "../middleware/authMiddleware.js";
 
@@ -22,5 +23,8 @@ router.put("/users/:id", authenticateSession, isAdmin, adminUpdateUser);
 
 // DELETE /admin/users/:id : supprimer un utilisateur
 router.delete("/users/:id", authenticateSession, isAdmin, adminDeleteUser);
+
+// POST /admin/reindex : réindexer tous les profils dans Meilisearch
+router.post("/reindex", authenticateSession, isAdmin, adminReindexProfiles);
 
 export default router;
