@@ -2,6 +2,7 @@
 import { User, Profile, Wallet } from "../models/index.js";
 import { Op } from "sequelize";
 import { removeProfileFromIndex } from "../services/meilisearch/meiliProfileService.js";
+import minioService from "../services/storage/minioService.js";
 
 // Récupérer tous les utilisateurs avec pagination (admin uniquement)
 export const adminGetAllUsers = async (req, res) => {
@@ -38,8 +39,16 @@ export const adminGetAllUsers = async (req, res) => {
 
     const totalPages = Math.ceil(count / limit);
 
+    const resolvedUsers = users.map((u) => {
+      const json = u.toJSON();
+      if (json.Profile?.image_url) {
+        json.Profile.image_url = minioService.resolveUrl(json.Profile.image_url);
+      }
+      return json;
+    });
+
     res.json({
-      users,
+      users: resolvedUsers,
       pagination: {
         currentPage: page,
         totalPages,
@@ -153,7 +162,12 @@ export const adminUpdateUser = async (req, res) => {
       ],
     });
 
-    res.json(updatedUser);
+    const updatedJson = updatedUser.toJSON();
+    if (updatedJson.Profile?.image_url) {
+      updatedJson.Profile.image_url = minioService.resolveUrl(updatedJson.Profile.image_url);
+    }
+
+    res.json(updatedJson);
   } catch (err) {
     console.error("Erreur adminUpdateUser:", err);
     res.status(500).json({ error: "Erreur mise à jour utilisateur" });
