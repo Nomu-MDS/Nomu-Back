@@ -154,7 +154,9 @@ router.post("/google/token", async (req, res) => {
     }
 
     const { sub: googleId, email, name, picture } = payload;
-    const googlePhoto = picture || null;
+    const rawPhoto = picture || null;
+    // Supprime le suffixe de taille Google (=s96-c) pour avoir la photo en haute qualité
+    const googlePhoto = rawPhoto ? rawPhoto.replace(/=s\d+-c$/, "=s400-c") : null;
 
     let isNew = false;
     let user = await User.findOne({ where: { google_id: googleId } });
@@ -162,6 +164,13 @@ router.post("/google/token", async (req, res) => {
       user = await User.findOne({ where: { email } });
       if (user) {
         await user.update({ google_id: googleId });
+        // Met à jour la photo si le profil n'en a pas encore
+        if (googlePhoto) {
+          const profile = await Profile.findOne({ where: { user_id: user.id } });
+          if (profile && !profile.image_url) {
+            await profile.update({ image_url: googlePhoto });
+          }
+        }
       } else {
         user = await User.create({
           name: name || email.split("@")[0],
@@ -174,6 +183,12 @@ router.post("/google/token", async (req, res) => {
         await Profile.create({ user_id: user.id, is_searchable: true, image_url: googlePhoto });
         await Wallet.create({ user_id: user.id, balance: 0 });
         isNew = true;
+      }
+    } else if (googlePhoto) {
+      // Utilisateur existant : met à jour la photo si elle a changé
+      const profile = await Profile.findOne({ where: { user_id: user.id } });
+      if (profile && !profile.image_url) {
+        await profile.update({ image_url: googlePhoto });
       }
     }
 

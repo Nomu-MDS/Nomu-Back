@@ -107,7 +107,8 @@ export const updateProfile = async (req, res) => {
     } = req.body;
 
     // Normaliser image_url : stocker le path, pas l'URL complète
-    const image_url = minioService.extractPath(rawImageUrl);
+    // undefined = non fourni → ne pas écraser la valeur existante
+    const image_url = rawImageUrl !== undefined ? minioService.extractPath(rawImageUrl) : undefined;
 
     // Mettre à jour User si nécessaire
     if (name || location) {
@@ -130,17 +131,9 @@ export const updateProfile = async (req, res) => {
         is_searchable,
       });
     } else {
-      await profile.update({
-        bio,
-        first_name,
-        last_name,
-        age,
-        biography,
-        country,
-        city,
-        image_url,
-        is_searchable,
-      });
+      const profileFields = { bio, first_name, last_name, age, biography, country, city, is_searchable };
+      if (image_url !== undefined) profileFields.image_url = image_url;
+      await profile.update(profileFields);
     }
 
     // Gérer les intérêts si fournis

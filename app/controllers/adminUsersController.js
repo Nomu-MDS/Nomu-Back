@@ -1,5 +1,5 @@
 // controllers/adminUsersController.js
-import { User, Profile } from "../models/index.js";
+import { User, Profile, Conversation, Message, Reservation, Report } from "../models/index.js";
 import { Op } from "sequelize";
 import { removeProfileFromIndex } from "../services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "../services/meilisearch/reindexService.js";
@@ -172,12 +172,13 @@ export const adminUpdateUser = async (req, res) => {
   }
 };
 
-// Supprimer un utilisateur (admin uniquement)
+// Supprimer un utilisateur (admin uniquement) — suppression complète en cascade
 export const adminDeleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = parseInt(id);
 
-    const user = await User.findByPk(id, {
+    const user = await User.findByPk(userId, {
       include: [{ model: Profile }],
     });
 
@@ -188,22 +189,66 @@ export const adminDeleteUser = async (req, res) => {
     // Empêcher l'admin de se supprimer lui-même
     if (user.id === req.user.dbUser.id) {
       return res.status(403).json({
-        error: "Vous ne pouvez pas supprimer votre propre compte"
+        error: "Vous ne pouvez pas supprimer votre propre compte",
       });
     }
 
-    // Supprimer le profil de l'index Meilisearch si présent
+    // 1. Meilisearch — supprimer le profil de l'index
     if (user.Profile) {
       try {
         await removeProfileFromIndex(user.Profile.id);
-        console.log(`🗑️  Profil supprimé de l'index Meilisearch: user_id ${user.id}`);
-      } catch (indexError) {
-        console.error("Erreur suppression index Meilisearch:", indexError);
-        // Ne pas bloquer la suppression si l'index échoue
+        console.log(`🗑️  Meilisearch: profil ${user.Profile.id} supprimé`);
+      } catch (e) {
+        console.error("Erreur suppression Meilisearch (non bloquant):", e.message);
       }
     }
 
-    // Supprimer l'utilisateur (cascade supprimera Profile, Wallet, etc.)
+    // 2. Minio — supprimer la photo de profil
+    if (user.Profile?.image_url) {
+      try {
+        const photoUrl = minioService.resolveUrl(user.Profile.image_url);
+        await minioService.deleteByUrl(photoUrl);
+        console.log(`🗑️  Minio: photo de profil supprimée`);
+      } catch (e) {
+        console.error("Erreur suppression photo profil (non bloquant):", e.message);
+      }
+    }
+
+    // 3. Conversations — supprimer les pièces jointes des messages, puis les données liées
+    const conversations = await Conversation.findAll({
+      where: { [Op.or]: [{ voyager_id: userId }, { local_id: userId }] },
+      include: [{ model: Message, as: "Messages" }],
+    });
+
+    for (const conv of conversations) {
+      // Supprimer les pièces jointes Minio de chaque message
+      for (const msg of conv.Messages || []) {
+        if (msg.attachment) {
+          try {
+            const attachUrl = minioService.resolveUrl(msg.attachment);
+            await minioService.deleteByUrl(attachUrl);
+          } catch (e) {
+            console.error(`Erreur suppression pièce jointe msg ${msg.id} (non bloquant):`, e.message);
+          }
+        }
+      }
+      // Supprimer réservations et messages liés à la conversation, puis la conversation
+      await Reservation.destroy({ where: { conversation_id: conv.id } });
+      await Message.destroy({ where: { conversation_id: conv.id } });
+      await conv.destroy();
+    }
+    console.log(`🗑️  ${conversations.length} conversation(s) supprimée(s)`);
+
+    // 4. Reports — nullifier reviewed_by si cet admin a reviewé des signalements
+    await Report.update({ reviewed_by: null }, { where: { reviewed_by: userId } });
+
+    // 5. Supprimer le profil manuellement (pas de CASCADE sur user_id)
+    if (user.Profile) {
+      await user.Profile.destroy();
+    }
+
+    // 6. Supprimer l'utilisateur
+    // → CASCADE DB supprime : Wallet, TokenTransaction, Reservation (creator_id), Report (reporter/reported)
     await user.destroy();
 
     console.log(`✅ Utilisateur supprimé: ${user.email} (ID: ${user.id})`);
@@ -215,7 +260,7 @@ export const adminDeleteUser = async (req, res) => {
 };
 
 // Réindexer tous les profils dans Meilisearch (admin uniquement)
-export const adminReindexProfiles = async (req, res) => {
+export const adminReindexProfiles = async (_req, res) => {
   try {
     const result = await reindexAllProfiles();
     const indexed = result?.indexed ?? result;
