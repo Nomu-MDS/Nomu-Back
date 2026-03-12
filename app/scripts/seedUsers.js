@@ -960,9 +960,22 @@ const users = [
 ];
 
 async function seed() {
+  const force = process.argv.includes("--force");
+
   try {
     await sequelize.authenticate();
     console.log("✅ DB connectée");
+
+    if (force) {
+      const { Op } = await import("sequelize");
+      const testUsers = await User.findAll({ where: { email: { [Op.like]: "%@test.com" } } });
+      if (testUsers.length) {
+        const ids = testUsers.map((u) => u.id);
+        await Profile.destroy({ where: { user_id: ids } });
+        await User.destroy({ where: { id: ids } });
+        console.log(`🗑️  ${testUsers.length} users de test supprimés`);
+      }
+    }
 
     const hashedPassword = await bcrypt.hash("test123", 10);
     const createdProfiles = [];
