@@ -59,14 +59,8 @@ router.post("/signup", async (req, res, next) => {
     // Login automatique après signup
     req.login(user, (err) => {
       if (err) return next(err);
-      // Retourner l'utilisateur (toJSON supprime password)
-      // Générer un JWT pour le client (utile si front mobile)
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret",
-        { expiresIn: "7d" },
-      );
-      return res.status(201).json({ user, profile, wallet, token });
+      const { token, refreshToken } = issueTokens(user);
+      return res.status(201).json({ user, profile, wallet, token, refreshToken });
     });
   } catch (err) {
     console.error("Erreur signup:", err);
@@ -85,12 +79,8 @@ router.post("/login", (req, res, next) => {
 
     req.login(user, (err) => {
       if (err) return next(err);
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret",
-        { expiresIn: "7d" },
-      );
-      return res.json({ user, token });
+      const { token, refreshToken } = issueTokens(user);
+      return res.json({ user, token, refreshToken });
     });
   })(req, res, next);
 });
@@ -98,7 +88,15 @@ router.post("/login", (req, res, next) => {
 // ── Google OAuth ────────────────────────────────────────────────────────────────
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "secret";
+const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || JWT_SECRET + "_refresh";
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+
+function issueTokens(user) {
+  const payload = { id: user.id, email: user.email };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+  const refreshToken = jwt.sign(payload, REFRESH_SECRET, { expiresIn: "30d" });
+  return { token, refreshToken };
+}
 
 // Web/mobile redirect — ouvre la page Google
 // ?mobile=1 → le flag est encodé dans le state OAuth (survit au redirect Google)
@@ -116,17 +114,15 @@ router.get(
   "/google/callback",
   passport.authenticate("google", { session: false, failureRedirect: `${CLIENT_URL}/login?error=google` }),
   (req, res) => {
-    const token = jwt.sign(
-      { id: req.user.id, email: req.user.email },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const { token, refreshToken } = issueTokens(req.user);
     if (req.query.state === "mobile") {
       const isNew = req.user._isNew ? "1" : "0";
-      return res.redirect(`nomufront://auth?token=${token}&new=${isNew}`);
+      const photo = req.user._googlePhoto ? `&photo=${encodeURIComponent(req.user._googlePhoto)}` : "";
+      return res.redirect(`nomufront://auth?token=${token}&refreshToken=${encodeURIComponent(refreshToken)}&new=${isNew}${photo}`);
     }
     const isNew = req.user._isNew ? "&new=1" : "";
-    res.redirect(`${CLIENT_URL}/auth/callback?token=${token}${isNew}`);
+    const photo = req.user._googlePhoto ? `&photo=${encodeURIComponent(req.user._googlePhoto)}` : "";
+    res.redirect(`${CLIENT_URL}/auth/callback?token=${token}&refreshToken=${encodeURIComponent(refreshToken)}${isNew}${photo}`);
   }
 );
 
@@ -157,7 +153,8 @@ router.post("/google/token", async (req, res) => {
       return res.status(401).json({ error: "Adresse email Google non vérifiée" });
     }
 
-    const { sub: googleId, email, name } = payload;
+    const { sub: googleId, email, name, picture } = payload;
+    const googlePhoto = picture || null;
 
     let isNew = false;
     let user = await User.findOne({ where: { google_id: googleId } });
@@ -174,17 +171,34 @@ router.post("/google/token", async (req, res) => {
           role: "user",
           is_active: true,
         });
-        await Profile.create({ user_id: user.id, is_searchable: true });
+        await Profile.create({ user_id: user.id, is_searchable: true, image_url: googlePhoto });
         await Wallet.create({ user_id: user.id, balance: 0 });
         isNew = true;
       }
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user, is_new_user: isNew });
+    const { token, refreshToken } = issueTokens(user);
+    res.json({ token, refreshToken, user, is_new_user: isNew, google_photo: googlePhoto });
   } catch (err) {
     console.error("Google token error:", err.message);
     res.status(401).json({ error: "Token Google invalide" });
+  }
+});
+
+// ── Refresh token ───────────────────────────────────────────────────────────────
+router.post("/refresh", async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(400).json({ error: "refreshToken requis" });
+
+  try {
+    const payload = jwt.verify(refreshToken, REFRESH_SECRET);
+    const user = await User.findByPk(payload.id);
+    if (!user || !user.is_active) return res.status(401).json({ error: "Token invalide" });
+
+    const tokens = issueTokens(user);
+    return res.json(tokens);
+  } catch {
+    return res.status(401).json({ error: "Token invalide ou expiré" });
   }
 });
 

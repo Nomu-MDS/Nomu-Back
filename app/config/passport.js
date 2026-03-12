@@ -42,6 +42,8 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
 
           let isNew = false;
 
+          const googlePhoto = googleProfile.photos?.[0]?.value || null;
+
           if (!user) {
             user = await User.findOne({ where: { email } });
             if (user) {
@@ -55,13 +57,14 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
                 role: "user",
                 is_active: true,
               });
-              await Profile.create({ user_id: user.id, is_searchable: true });
+              await Profile.create({ user_id: user.id, is_searchable: true, image_url: googlePhoto });
               await Wallet.create({ user_id: user.id, balance: 0 });
               isNew = true;
             }
           }
 
           user._isNew = isNew;
+          user._googlePhoto = googlePhoto;
           return done(null, user);
         } catch (err) {
           return done(err);
