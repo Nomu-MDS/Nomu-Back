@@ -76,7 +76,7 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
       },
       limit: options.limit || 20,
       attributesToRetrieve: ["id", "user_id", "name", "bio", "city", "country", "location", "interests", "image_url"],
-      matchingStrategy: "frequency",
+      matchingStrategy: "all",
     };
 
     const filter = buildFilter(options);
@@ -139,7 +139,7 @@ export const searchProfiles = async (query, options = {}) => {
       },
       limit: options.limit || 20,
       attributesToRetrieve: ["id", "user_id", "name", "bio", "city", "country", "location", "interests", "image_url"],
-      matchingStrategy: "frequency",
+      matchingStrategy: "all",
     };
 
     const filter = buildFilter(options);
