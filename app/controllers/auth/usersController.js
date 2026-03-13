@@ -326,13 +326,16 @@ export const searchUsers = async (req, res) => {
         q || "",
         options,
       );
-      // Exclure le profil du chercheur des résultats
-      result.hits = result.hits.filter((hit) => hit.id !== searcherProfileId);
+      // Exclure le profil du chercheur + résoudre les image_url (path → URL Minio)
+      result.hits = result.hits
+        .filter((hit) => hit.id !== searcherProfileId)
+        .map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
       return res.json(result);
     }
 
     // Sinon recherche simple
     const result = await searchProfilesService(q || "", options);
+    result.hits = result.hits.map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
     res.json(result);
   } catch (err) {
     console.error("Erreur searchUsers:", err);
