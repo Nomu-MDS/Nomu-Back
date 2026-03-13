@@ -30,22 +30,21 @@ router.post("/signup", async (req, res, next) => {
       location,
     });
 
-    const searchable = is_searchable !== false && is_searchable !== "false";
-
     const profile = await Profile.create({
       user_id: user.id,
-      is_searchable: searchable,
+      is_searchable: true,
       bio: bio || null,
     });
     const wallet = await Wallet.create({ user_id: user.id, balance: 0 });
 
-    if (searchable) {
+    // Indexation non bloquante — une erreur Meilisearch ne doit pas faire échouer le signup
+    try {
       await indexProfiles([
         {
           id: profile.id,
           user_id: user.id,
           name: user.name,
-          location: user.location,
+          location: user.location || "",
           bio: profile.bio || "",
           biography: "",
           country: "",
@@ -54,6 +53,8 @@ router.post("/signup", async (req, res, next) => {
           image_url: "",
         },
       ]);
+    } catch (e) {
+      console.error("[Meilisearch] Erreur indexation signup:", e);
     }
 
     // Login automatique après signup

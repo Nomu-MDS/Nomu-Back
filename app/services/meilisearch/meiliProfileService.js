@@ -63,15 +63,20 @@ function buildFilter(options) {
 // Recherche enrichie : combine le profil du chercheur (A) + sa requête pour trouver B
 export const searchProfilesEnriched = async (searcherProfile, query, options = {}) => {
   try {
-    // Construire une requête enrichie avec le contexte du chercheur
     const enrichedQuery = buildEnrichedQuery(searcherProfile, query);
+
+    // Pas de requête → mode "For You" : full sémantique
+    // Requête explicite → équilibré : le keyword match "vélo" / "paris" dans les champs texte
+    const semanticRatio = options.semanticRatio ?? (query ? 0.5 : 0.8);
 
     const searchParams = {
       hybrid: {
         embedder: "profiles-openai",
-        semanticRatio: options.semanticRatio || 0.7,
+        semanticRatio,
       },
       limit: options.limit || 20,
+      attributesToRetrieve: ["id", "user_id", "name", "bio", "city", "country", "location", "interests", "image_url"],
+      matchingStrategy: "frequency",
     };
 
     const filter = buildFilter(options);
@@ -88,27 +93,40 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
 
 // Construit une requête enrichie à partir du profil du chercheur + sa requête
 const buildEnrichedQuery = (searcherProfile, userQuery) => {
-  const parts = [];
+  // ── Cas 1 : l'utilisateur a tapé quelque chose ────────────────────────────
+  // Garder la requête précise + léger contexte d'intérêts pour ne pas diluer
+  if (userQuery) {
+    const parts = [userQuery];
+    if (searcherProfile?.interests?.length) {
+      // Juste 3 intérêts max pour orienter sans noyer le signal
+      parts.push(searcherProfile.interests.slice(0, 3).join(", "));
+    }
+    return parts.join(". ");
+  }
 
-  // Ajouter la requête de l'utilisateur en priorité
-  if (userQuery) parts.push(userQuery);
+  // ── Cas 2 : mode "For You" (pas de requête) ───────────────────────────────
+  // Requête sémantique riche basée sur le profil du chercheur
+  const sentences = [];
 
-  // Enrichir avec les intérêts du chercheur
   if (searcherProfile?.interests?.length) {
-    parts.push(`intérêts: ${searcherProfile.interests.join(", ")}`);
+    sentences.push(`Je m'intéresse à ${searcherProfile.interests.join(", ")}.`);
   }
 
-  // Enrichir avec la bio du chercheur pour trouver des profils compatibles
-  if (searcherProfile?.bio) {
-    parts.push(`compatible avec: ${searcherProfile.bio.slice(0, 100)}`);
+  const bioText = searcherProfile?.biography || searcherProfile?.bio;
+  if (bioText) {
+    sentences.push(`Je cherche des personnes compatibles avec quelqu'un qui : ${bioText.slice(0, 300)}`);
   }
 
-  // Enrichir avec la localisation si pertinent
   if (searcherProfile?.location) {
-    parts.push(`proche de ${searcherProfile.location}`);
+    sentences.push(`Basé près de ${searcherProfile.location}.`);
   }
 
-  return parts.join(" | ");
+  // Fallback si profil vide → évite de renvoyer "" à Meilisearch
+  if (sentences.length === 0) {
+    return "personnes intéressantes à rencontrer et avec qui échanger";
+  }
+
+  return sentences.join(" ");
 };
 
 // Recherche simple (sans enrichissement)
@@ -120,6 +138,8 @@ export const searchProfiles = async (query, options = {}) => {
         semanticRatio: options.semanticRatio || 0.5,
       },
       limit: options.limit || 20,
+      attributesToRetrieve: ["id", "user_id", "name", "bio", "city", "country", "location", "interests", "image_url"],
+      matchingStrategy: "frequency",
     };
 
     const filter = buildFilter(options);

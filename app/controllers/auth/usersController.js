@@ -141,29 +141,42 @@ export const updateProfile = async (req, res) => {
       await profile.setInterests(interest_ids);
     }
 
-    // Si is_searchable a changé, gérer l'indexation
-    if (is_searchable !== undefined) {
-      if (is_searchable) {
-        const updatedProfile = await Profile.findByPk(profile.id, {
-          include: [User, Interest],
-        });
-        await indexProfiles([
-          {
-            id: updatedProfile.id,
-            user_id: updatedProfile.user_id,
-            name: updatedProfile.User?.name || "",
-            location:
-              updatedProfile.User?.location || updatedProfile.city || "",
-            bio: updatedProfile.bio || "",
-            biography: updatedProfile.biography || "",
-            country: updatedProfile.country || "",
-            city: updatedProfile.city || "",
-            interests: updatedProfile.Interests?.map((i) => i.name) || [],
-            image_url: updatedProfile.image_url || "",
-          },
-        ]);
-      } else {
-        await removeProfileFromIndex(profile.id);
+    // Re-indexer si is_searchable a changé OU si les intérêts/données ont été mis à jour
+    const profileChanged =
+      is_searchable !== undefined ||
+      (interest_ids && Array.isArray(interest_ids)) ||
+      name || location || bio || first_name || last_name || age ||
+      biography || country || city || image_url !== undefined;
+
+    if (profileChanged) {
+      const freshProfile = await Profile.findByPk(profile.id, {
+        include: [User, Interest],
+      });
+      if (freshProfile.is_searchable) {
+        try {
+          await indexProfiles([
+            {
+              id: freshProfile.id,
+              user_id: freshProfile.user_id,
+              name: freshProfile.User?.name || "",
+              location: freshProfile.User?.location || freshProfile.city || "",
+              bio: freshProfile.bio || "",
+              biography: freshProfile.biography || "",
+              country: freshProfile.country || "",
+              city: freshProfile.city || "",
+              interests: freshProfile.Interests?.map((i) => i.name) || [],
+              image_url: freshProfile.image_url || "",
+            },
+          ]);
+        } catch (e) {
+          console.error("[Meilisearch] Erreur indexation updateProfile:", e);
+        }
+      } else if (is_searchable === false) {
+        try {
+          await removeProfileFromIndex(profile.id);
+        } catch (e) {
+          console.error("[Meilisearch] Erreur suppression index updateProfile:", e);
+        }
       }
     }
 
@@ -313,13 +326,16 @@ export const searchUsers = async (req, res) => {
         q || "",
         options,
       );
-      // Exclure le profil du chercheur des résultats
-      result.hits = result.hits.filter((hit) => hit.id !== searcherProfileId);
+      // Exclure le profil du chercheur + résoudre les image_url (path → URL Minio)
+      result.hits = result.hits
+        .filter((hit) => hit.id !== searcherProfileId)
+        .map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
       return res.json(result);
     }
 
     // Sinon recherche simple
     const result = await searchProfilesService(q || "", options);
+    result.hits = result.hits.map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
     res.json(result);
   } catch (err) {
     console.error("Erreur searchUsers:", err);
