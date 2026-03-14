@@ -1,5 +1,6 @@
 import { Reservation, Conversation, User } from "../../models/index.js";
 import { Op } from "sequelize";
+import { getIo } from "../../services/websocket/ioInstance.js";
 
 const getCurrentUserFromReq = async (req) => {
     // Si la session Passport est présente, utiliser dbUser
@@ -48,6 +49,23 @@ const handleReservationStatusUpdate = async (req, res, status) => {
 
         reservation.status = status;
         await reservation.save();
+
+        // Notifier les deux participants en temps réel
+        const io = getIo();
+        if (io) {
+            io.to(`conversation_${reservation.conversation_id}`).emit('reservation_updated', {
+                reservation: {
+                    id: reservation.id,
+                    title: reservation.title,
+                    price: reservation.price,
+                    date: reservation.date,
+                    end_date: reservation.end_date,
+                    status: reservation.status,
+                    creator_id: reservation.creator_id,
+                    conversation_id: reservation.conversation_id,
+                },
+            });
+        }
 
         res.json(reservation);
     } catch (err) {

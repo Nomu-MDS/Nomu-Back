@@ -30,6 +30,7 @@ console.log(
 );
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
+import { setIo } from "./services/websocket/ioInstance.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -137,6 +138,9 @@ if (process.env.NODE_ENV !== "production") {
   });
   console.log("🖼️  Minio proxy actif sur /profiles/* et /messages/*");
 }
+
+// Rendre io accessible aux controllers REST (ex: réservations)
+setIo(io);
 
 // Configuration Socket.IO: rattacher la session express puis authentifier
 io.use((socket, next) => {
