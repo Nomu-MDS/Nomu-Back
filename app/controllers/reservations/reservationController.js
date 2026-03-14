@@ -135,6 +135,24 @@ export const createReservation = async (req, res) => {
             status: 'pending'
         });
 
+        // Notifier les deux participants en temps réel
+        const io = getIo();
+        if (io) {
+            io.to(`conversation_${conversation_id}`).emit('reservation_created', {
+                reservation: {
+                    id: reservation.id,
+                    title: reservation.title,
+                    price: reservation.price,
+                    date: reservation.date,
+                    end_date: reservation.end_date,
+                    status: reservation.status,
+                    creator_id: reservation.creator_id,
+                    conversation_id: reservation.conversation_id,
+                    createdAt: reservation.createdAt,
+                },
+            });
+        }
+
         res.status(201).json(reservation);
     } catch (err) {
         console.error("Erreur createReservation:", err);
