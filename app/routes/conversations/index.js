@@ -1,9 +1,33 @@
 // app/routes/conversations/index.js
 import express from "express";
-import { Conversation, Message, User } from "../../models/index.js";
+import { Conversation, Message, User, Profile } from "../../models/index.js";
 import { Op } from "sequelize";
+import minioService from "../../services/storage/minioService.js";
 
 const router = express.Router();
+
+const userWithProfile = (alias) => ({
+  model: User,
+  as: alias,
+  attributes: ["id", "name", "email"],
+  include: [{ model: Profile, as: "Profile", attributes: ["image_url"] }],
+});
+
+/** Aplatit Profile.image_url → image_url (résolue) sur un user sérialisé */
+function flattenUser(user) {
+  if (!user) return user;
+  const { Profile: profile, ...rest } = user;
+  return { ...rest, image_url: minioService.resolveUrl(profile?.image_url ?? null) };
+}
+
+/** Post-traite une conversation sérialisée */
+function flattenConv(conv) {
+  return {
+    ...conv,
+    Voyager: flattenUser(conv.Voyager),
+    Local: flattenUser(conv.Local),
+  };
+}
 
 // GET /conversations - Récupérer toutes les conversations de l'utilisateur
 router.get("/", async (req, res) => {
@@ -17,16 +41,8 @@ router.get("/", async (req, res) => {
         [Op.or]: [{ voyager_id: currentUser.id }, { local_id: currentUser.id }],
       },
       include: [
-        {
-          model: User,
-          as: "Voyager",
-          attributes: ["id", "name", "email"],
-        },
-        {
-          model: User,
-          as: "Local",
-          attributes: ["id", "name", "email"],
-        },
+        userWithProfile("Voyager"),
+        userWithProfile("Local"),
         {
           model: Message,
           as: "Messages",
@@ -45,7 +61,7 @@ router.get("/", async (req, res) => {
       order: [["updatedAt", "DESC"]],
     });
 
-    res.json({ conversations });
+    res.json({ conversations: conversations.map(c => flattenConv(c.toJSON())) });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     res.status(500).json({ error: "Failed to fetch conversations" });
@@ -61,18 +77,7 @@ router.get("/:id", async (req, res) => {
 
     // Récupérer la conversation
     const conversation = await Conversation.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: "Voyager",
-          attributes: ["id", "name", "email"],
-        },
-        {
-          model: User,
-          as: "Local",
-          attributes: ["id", "name", "email"],
-        },
-      ],
+      include: [userWithProfile("Voyager"), userWithProfile("Local")],
     });
 
     if (!conversation) {
@@ -84,7 +89,7 @@ router.get("/:id", async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    res.json({ conversation });
+    res.json({ conversation: flattenConv(conversation.toJSON()) });
   } catch (error) {
     console.error("Error fetching conversation:", error);
     res.status(500).json({ error: "Failed to fetch conversation" });
@@ -171,20 +176,9 @@ router.post("/", async (req, res) => {
     // Si la conversation existe déjà, la retourner
     if (conversation) {
       conversation = await Conversation.findByPk(conversation.id, {
-        include: [
-          {
-            model: User,
-            as: "Voyager",
-            attributes: ["id", "name", "email"],
-          },
-          {
-            model: User,
-            as: "Local",
-            attributes: ["id", "name", "email"],
-          },
-        ],
+        include: [userWithProfile("Voyager"), userWithProfile("Local")],
       });
-      return res.json({ conversation, existed: true });
+      return res.json({ conversation: flattenConv(conversation.toJSON()), existed: true });
     }
 
     // Créer la conversation
@@ -195,21 +189,10 @@ router.post("/", async (req, res) => {
 
     // Recharger avec les relations
     conversation = await Conversation.findByPk(conversation.id, {
-      include: [
-          {
-            model: User,
-            as: "Voyager",
-            attributes: ["id", "name", "email"],
-          },
-          {
-            model: User,
-            as: "Local",
-            attributes: ["id", "name", "email"],
-          },
-      ],
+      include: [userWithProfile("Voyager"), userWithProfile("Local")],
     });
 
-    res.status(201).json({ conversation, existed: false });
+    res.status(201).json({ conversation: flattenConv(conversation.toJSON()), existed: false });
   } catch (error) {
     console.error("Error creating conversation:", error);
     res.status(500).json({ error: "Failed to create conversation" });
