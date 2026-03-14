@@ -94,8 +94,8 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 function issueTokens(user) {
   const payload = { id: user.id, email: user.email };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
-  const refreshToken = jwt.sign(payload, REFRESH_SECRET, { expiresIn: "30d" });
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  const refreshToken = jwt.sign(payload, REFRESH_SECRET, { expiresIn: "7d" });
   return { token, refreshToken };
 }
 
