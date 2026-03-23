@@ -37,11 +37,12 @@ export const reindexAllProfiles = async () => {
     user_id: profile.user_id,
     name: profile.User?.name || "",
     location: profile.User?.location || profile.city || "",
-    bio: profile.User?.bio || "",
+    bio: profile.bio || "",
     biography: profile.biography || "",
     country: profile.country || "",
     city: profile.city || "",
     interests: profile.Interests?.map((i) => i.name) || [],
+    image_url: profile.image_url || "",
   }));
 
   // Étape 4 : Indexer les profils actifs

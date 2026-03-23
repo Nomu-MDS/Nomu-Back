@@ -1,11 +1,10 @@
 // app/server.js
 
-import dotenv from "dotenv";
-dotenv.config();
+import "dotenv/config"; // doit être le premier import — charge .env avant tout autre module
 
 import express from "express";
 import cors from "cors"; // ✅ Ajoute cet import
-import { createServer } from "http";
+import { createServer, request as httpRequest } from "http";
 import { Server } from "socket.io";
 import session from "express-session";
 import passport from "passport";
@@ -31,6 +30,7 @@ console.log(
 );
 import { socketAuthMiddleware } from "./services/websocket/socketAuth.js";
 import { setupChatHandlers } from "./services/websocket/chatService.js";
+import { setIo } from "./services/websocket/ioInstance.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -117,6 +117,30 @@ app.use("/reports", authenticateSession, reportsRoutes);
 app.use("/admin", adminUsersRoutes);
 app.use("/admin/reports", adminReportsRoutes);
 app.use("/upload", authenticateSession, uploadRoutes);
+
+// En dev : proxy transparent vers Minio pour que les images soient accessibles
+// via la même URL que l'API (ex: cloudflared tunnel unique).
+// En prod, Nginx gère /profiles/* et /messages/* directement.
+if (process.env.NODE_ENV !== "production") {
+  app.get(/^\/(profiles|messages)\//, (req, res) => {
+    const minioHost = process.env.MINIO_ENDPOINT || "localhost";
+    const minioPort = parseInt(process.env.MINIO_PORT) || 9000;
+    const proxyReq = httpRequest(
+      { hostname: minioHost, port: minioPort, path: req.path, method: "GET" },
+      (proxyRes) => {
+        res.set("Content-Type", proxyRes.headers["content-type"] || "application/octet-stream");
+        res.set("Cache-Control", "public, max-age=604800");
+        proxyRes.pipe(res);
+      }
+    );
+    proxyReq.on("error", () => res.status(502).end());
+    proxyReq.end();
+  });
+  console.log("🖼️  Minio proxy actif sur /profiles/* et /messages/*");
+}
+
+// Rendre io accessible aux controllers REST (ex: réservations)
+setIo(io);
 
 // Configuration Socket.IO: rattacher la session express puis authentifier
 io.use((socket, next) => {

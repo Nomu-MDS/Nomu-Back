@@ -13,9 +13,9 @@ export default (sequelize) => {
         unique: "users_email_unique",
       },
       password: { type: DataTypes.STRING, allowNull: true },
+      google_id: { type: DataTypes.STRING, allowNull: true, unique: true },
       role: { type: DataTypes.STRING, defaultValue: "user" },
       is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-      bio: { type: DataTypes.TEXT },
       location: { type: DataTypes.STRING },
     },
     {

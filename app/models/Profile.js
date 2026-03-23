@@ -3,6 +3,7 @@ import { DataTypes } from "sequelize";
 export default (sequelize) => {
     const Profile = sequelize.define("Profile", {
         id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+        bio: DataTypes.TEXT,
         last_name: DataTypes.STRING,
         first_name: DataTypes.STRING,
         age: DataTypes.INTEGER,

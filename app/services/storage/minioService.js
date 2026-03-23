@@ -52,9 +52,10 @@ class MinioService {
       "Content-Type": mimeType,
     });
 
+    const path = `${bucket}/${objectName}`;
     const url = this.getPublicUrl(bucket, objectName);
 
-    return { url, objectName, mimeType, size: buffer.length };
+    return { url, path, objectName, mimeType, size: buffer.length };
   }
 
   /**
@@ -63,7 +64,7 @@ class MinioService {
    * @param {Buffer} buffer - Le buffer du fichier
    * @param {string} mimeType - Le type MIME
    * @param {string} prefix - Préfixe optionnel
-   * @returns {Promise<{ url: string, objectName: string }>}
+   * @returns {Promise<{ url: string, path: string, objectName: string }>}
    */
   async uploadBuffer(bucket, buffer, mimeType, prefix = "") {
     const extension = mimeType.split("/")[1] || "bin";
@@ -73,9 +74,10 @@ class MinioService {
       "Content-Type": mimeType,
     });
 
+    const path = `${bucket}/${objectName}`;
     const url = this.getPublicUrl(bucket, objectName);
 
-    return { url, objectName, mimeType, size: buffer.length };
+    return { url, path, objectName, mimeType, size: buffer.length };
   }
 
   /**
@@ -107,6 +109,41 @@ class MinioService {
   getPublicUrl(bucket, objectName) {
     const endpoint = process.env.MINIO_PUBLIC_URL || `http://localhost:9000`;
     return `${endpoint}/${bucket}/${objectName}`;
+  }
+
+  /**
+   * Résout un path stocké en DB vers une URL complète.
+   * Compatible avec les anciennes entrées qui contiennent déjà une URL complète.
+   * @param {string|null} pathOrUrl - ex: "profiles/user_42/abc.jpg" ou "http://..."
+   * @returns {string|null}
+   */
+  resolveUrl(pathOrUrl) {
+    if (!pathOrUrl) return null;
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+      return pathOrUrl; // rétro-compatibilité : déjà une URL complète
+    }
+    const endpoint = process.env.MINIO_PUBLIC_URL || "http://localhost:9000";
+    return `${endpoint}/${pathOrUrl}`;
+  }
+
+  /**
+   * Extrait le path stockable depuis une URL ou un path.
+   * ex: "http://localhost:9000/profiles/user_42/abc.jpg" → "profiles/user_42/abc.jpg"
+   * ex: "profiles/user_42/abc.jpg" → "profiles/user_42/abc.jpg"
+   * @param {string|null} urlOrPath
+   * @returns {string|null}
+   */
+  extractPath(urlOrPath) {
+    if (!urlOrPath) return null;
+    if (!urlOrPath.startsWith("http://") && !urlOrPath.startsWith("https://")) {
+      return urlOrPath; // déjà un path
+    }
+    try {
+      const { pathname } = new URL(urlOrPath);
+      return pathname.replace(/^\//, ""); // retire le "/" initial
+    } catch {
+      return urlOrPath;
+    }
   }
 
   /**

@@ -3,6 +3,7 @@ import express from "express";
 import { createUser, searchUsers, toggleSearchable, updateProfile, updateInterests, getProfileById } from "../../controllers/auth/usersController.js";
 import { authenticateSession } from "../../middleware/authMiddleware.js";
 import { User, Profile, Interest } from "../../models/index.js";
+import minioService from "../../services/storage/minioService.js";
 
 const router = express.Router();
 
@@ -17,7 +18,13 @@ router.get("/me", authenticateSession, async (req, res) => {
       include: [{ model: Profile, include: [Interest] }],
     });
     if (!user) return res.status(404).json({ error: "Utilisateur non trouvé" });
-    res.json(user);
+
+    // Résoudre le path Minio → URL complète avant d'envoyer au client
+    const userJson = user.toJSON();
+    if (userJson.Profile?.image_url) {
+      userJson.Profile.image_url = minioService.resolveUrl(userJson.Profile.image_url);
+    }
+    res.json(userJson);
   } catch (err) {
     res.status(500).json({ error: "Erreur serveur" });
   }

@@ -1,7 +1,8 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import bcrypt from "bcrypt";
-import { User } from "../models/index.js";
+import { User, Profile, Wallet } from "../models/index.js";
 
 passport.use(
   new LocalStrategy({ usernameField: "email" }, async (email, password, done) => {
@@ -21,6 +22,76 @@ passport.use(
     }
   })
 );
+
+const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL } = process.env;
+
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: GOOGLE_CALLBACK_URL,
+      },
+      async (accessToken, refreshToken, googleProfile, done) => {
+        try {
+          const email = googleProfile.emails?.[0]?.value;
+          if (!email) return done(null, false, { message: "No email from Google" });
+
+          let user = await User.findOne({ where: { google_id: googleProfile.id } });
+
+          let isNew = false;
+
+          const rawPhoto = googleProfile.photos?.[0]?.value || null;
+          // Supprime le suffixe de taille Google (=s96-c) pour avoir la photo en haute qualité
+          const googlePhoto = rawPhoto ? rawPhoto.replace(/=s\d+-c$/, "=s400-c") : null;
+
+          if (!user) {
+            user = await User.findOne({ where: { email } });
+            if (user) {
+              await user.update({ google_id: googleProfile.id });
+              // Met à jour la photo si le profil n'en a pas encore
+              if (googlePhoto) {
+                const profile = await Profile.findOne({ where: { user_id: user.id } });
+                if (profile && !profile.image_url) {
+                  await profile.update({ image_url: googlePhoto });
+                }
+              }
+            } else {
+              user = await User.create({
+                name: googleProfile.displayName || email.split("@")[0],
+                email,
+                password: null,
+                google_id: googleProfile.id,
+                role: "user",
+                is_active: true,
+              });
+              await Profile.create({ user_id: user.id, is_searchable: true, image_url: googlePhoto });
+              await Wallet.create({ user_id: user.id, balance: 0 });
+              isNew = true;
+            }
+          } else if (googlePhoto) {
+            // Utilisateur existant : met à jour la photo si elle a changé
+            const profile = await Profile.findOne({ where: { user_id: user.id } });
+            if (profile && !profile.image_url) {
+              await profile.update({ image_url: googlePhoto });
+            }
+          }
+
+          user._isNew = isNew;
+          user._googlePhoto = googlePhoto;
+          return done(null, user);
+        } catch (err) {
+          return done(err);
+        }
+      }
+    )
+  );
+} else {
+  console.warn(
+    "[Passport] Google OAuth strategy not initialized: missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_CALLBACK_URL"
+  );
+}
 
 passport.serializeUser((user, done) => done(null, user.id));
 

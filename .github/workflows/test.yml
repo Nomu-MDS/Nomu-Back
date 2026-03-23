@@ -36,6 +36,7 @@ jobs:
       # Secrets factices — suffisants pour signer sessions et JWT en test
       SESSION_SECRET: ci_test_session_secret_not_used_in_prod
       JWT_SECRET: ci_test_jwt_secret_not_used_in_prod
+      REFRESH_TOKEN_SECRET: ci_test_refresh_token_secret_not_used_in_prod
       # Meilisearch non démarré en CI — les tests utilisent is_searchable:false
       # ces variables évitent des erreurs "undefined" à l'import du service
       MEILI_HOST: http://localhost:7700

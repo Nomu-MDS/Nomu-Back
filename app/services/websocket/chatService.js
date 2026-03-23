@@ -83,12 +83,12 @@ export const setupChatHandlers = (io, socket) => {
     try {
       const { conversation_id, content, attachment } = data;
 
-      if (!conversation_id || !content) {
-        return socket.emit("error", { message: "conversation_id and content are required" });
+      if (!conversation_id || (!content && !attachment)) {
+        return socket.emit("error", { message: "conversation_id and content or attachment are required" });
       }
 
       // Valider la longueur du message
-      if (content.length > MAX_MESSAGE_LENGTH) {
+      if (content && content.length > MAX_MESSAGE_LENGTH) {
         return socket.emit("error", { message: `Message exceeds ${MAX_MESSAGE_LENGTH} characters limit` });
       }
 
@@ -116,7 +116,7 @@ export const setupChatHandlers = (io, socket) => {
       const message = await Message.create({
         user_id: user.id,
         conversation_id,
-        content,
+        content: content || '',
         attachment: attachment || null,
         read: false,
       });
