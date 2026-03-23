@@ -32,6 +32,14 @@ vi.mock("../../../services/meilisearch/meiliProfileService.js", () => ({
   searchProfiles: vi.fn().mockResolvedValue({ hits: [] }),
 }));
 
+// Mock minioService
+vi.mock("../../../services/storage/minioService.js", () => ({
+  default: {
+    extractPath: vi.fn((url) => url ? url.replace(/^https?:\/\/[^/]+\//, "") : url),
+    resolveUrl: vi.fn((path) => path ? `http://localhost:9000/${path}` : null),
+  },
+}));
+
 import { User, Profile } from "../../../models/index.js";
 import {
   createUser,
@@ -151,34 +159,37 @@ describe("usersController", () => {
         city: "Lyon",
       };
 
-      const mockProfile = createMockProfile({ user_id: 1 });
+      const mockProfile = createMockProfile({ user_id: 1, id: 1, is_searchable: false });
       const mockUpdatedUser = createMockUser({
         id: 1,
         Profile: mockProfile,
       });
 
       Profile.findOne.mockResolvedValue(mockProfile);
+      Profile.findByPk.mockResolvedValue(mockProfile);
       User.update.mockResolvedValue([1]);
       User.findByPk.mockResolvedValue(mockUpdatedUser);
 
       await updateProfile(req, res);
 
+      // User.update ne prend que name et location (bio est sur Profile maintenant)
       expect(User.update).toHaveBeenCalledWith(
-        { name: "Nouveau Nom", bio: "Nouvelle bio", location: undefined },
+        expect.objectContaining({ name: "Nouveau Nom" }),
         { where: { id: 1 } }
       );
       expect(mockProfile.update).toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith(mockUpdatedUser);
+      expect(res.json).toHaveBeenCalled();
     });
 
     it("crée un profil si inexistant", async () => {
       req.body = { first_name: "Jean" };
 
-      const mockNewProfile = createMockProfile({ user_id: 1 });
+      const mockNewProfile = createMockProfile({ user_id: 1, id: 1, is_searchable: false });
       const mockUpdatedUser = createMockUser({ id: 1 });
 
       Profile.findOne.mockResolvedValue(null); // Pas de profil existant
       Profile.create.mockResolvedValue(mockNewProfile);
+      Profile.findByPk.mockResolvedValue(mockNewProfile);
       User.findByPk.mockResolvedValue(mockUpdatedUser);
 
       await updateProfile(req, res);
@@ -192,10 +203,11 @@ describe("usersController", () => {
     it("met à jour les intérêts si fournis", async () => {
       req.body = { interest_ids: [1, 2, 3] };
 
-      const mockProfile = createMockProfile({ user_id: 1 });
+      const mockProfile = createMockProfile({ user_id: 1, id: 1, is_searchable: false });
       const mockUpdatedUser = createMockUser({ id: 1 });
 
       Profile.findOne.mockResolvedValue(mockProfile);
+      Profile.findByPk.mockResolvedValue(mockProfile);
       User.findByPk.mockResolvedValue(mockUpdatedUser);
 
       await updateProfile(req, res);

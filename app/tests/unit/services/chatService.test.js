@@ -178,7 +178,7 @@ describe("chatService", () => {
       await handlers.send_message({ conversation_id: 1 });
 
       expect(socket.emit).toHaveBeenCalledWith("error", {
-        message: "conversation_id and content are required"
+        message: "conversation_id and content or attachment are required"
       });
     });
 

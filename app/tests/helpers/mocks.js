@@ -33,22 +33,30 @@ export const createMockRes = () => {
 
 // ─── Mock User ───────────────────────────────────────────────────────────────
 
-export const createMockUser = (overrides = {}) => ({
-  id: 1,
-  name: "Test User",
-  email: "test@test.com",
-  password: "hashedpassword",
-  role: "user",
-  is_active: true,
-  bio: "Test bio",
-  location: "Paris",
-  created_at: new Date(),
-  updated_at: new Date(),
-  save: vi.fn().mockResolvedValue(true),
-  update: vi.fn().mockResolvedValue(true),
-  destroy: vi.fn().mockResolvedValue(true),
-  ...overrides,
-});
+export const createMockUser = (overrides = {}) => {
+  const user = {
+    id: 1,
+    name: "Test User",
+    email: "test@test.com",
+    password: "hashedpassword",
+    role: "user",
+    is_active: true,
+    bio: "Test bio",
+    location: "Paris",
+    created_at: new Date(),
+    updated_at: new Date(),
+    save: vi.fn().mockResolvedValue(true),
+    update: vi.fn().mockResolvedValue(true),
+    destroy: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+  // Ajout de toJSON pour compatibilité avec Sequelize
+  user.toJSON = () => {
+    const { save, update, destroy, toJSON, ...rest } = user;
+    return rest;
+  };
+  return user;
+};
 
 // ─── Mock Profile ────────────────────────────────────────────────────────────
 

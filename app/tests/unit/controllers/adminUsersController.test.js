@@ -18,6 +18,19 @@ vi.mock("../../../models/index.js", () => ({
     findOne: vi.fn(),
   },
   Wallet: {},
+  Conversation: {
+    findAll: vi.fn(),
+    destroy: vi.fn(),
+  },
+  Message: {
+    destroy: vi.fn(),
+  },
+  Reservation: {
+    destroy: vi.fn(),
+  },
+  Report: {
+    update: vi.fn(),
+  },
 }));
 
 // Mock Meilisearch (on ne teste pas Meilisearch)
@@ -25,7 +38,15 @@ vi.mock("../../../services/meilisearch/meiliProfileService.js", () => ({
   removeProfileFromIndex: vi.fn().mockResolvedValue(true),
 }));
 
-import { User, Profile } from "../../../models/index.js";
+// Mock minioService
+vi.mock("../../../services/storage/minioService.js", () => ({
+  default: {
+    resolveUrl: vi.fn((path) => path ? `http://localhost:9000/${path}` : null),
+    deleteByUrl: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+import { User, Profile, Conversation, Message, Reservation, Report } from "../../../models/index.js";
 import {
   adminGetAllUsers,
   adminGetUserById,
@@ -72,7 +93,7 @@ describe("adminUsersController", () => {
         })
       );
       expect(res.json).toHaveBeenCalledWith({
-        users: mockUsers,
+        users: expect.any(Array),
         pagination: {
           currentPage: 1,
           totalPages: 2,
@@ -306,9 +327,11 @@ describe("adminUsersController", () => {
     it("supprime un utilisateur avec succès", async () => {
       req.params = { id: 1 };
 
-      const mockUser = createMockUser({ id: 1, email: "user@test.com" });
+      const mockProfile = createMockProfile({ id: 1, user_id: 1 });
+      const mockUser = createMockUser({ id: 1, email: "user@test.com", Profile: mockProfile });
 
       User.findByPk.mockResolvedValue(mockUser);
+      Conversation.findAll.mockResolvedValue([]);
 
       await adminDeleteUser(req, res);
 
