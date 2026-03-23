@@ -65,10 +65,12 @@ describe("tokenController", () => {
   describe("getWalletDetails", () => {
     it("retourne les détails du wallet", async () => {
       const mockDetails = {
-        balance: 150,
-        totalEarned: 500,
-        totalSpent: 350,
-        transactionCount: 25,
+        wallet: createMockWallet({ balance: 150 }),
+        statistics: {
+          total_credits: 500,
+          total_debits: 350,
+          transaction_count: 25,
+        },
       };
       tokenService.getWalletDetails.mockResolvedValue(mockDetails);
 
@@ -92,10 +94,15 @@ describe("tokenController", () => {
 
   describe("getHistory", () => {
     it("retourne l'historique avec options par défaut", async () => {
-      const mockHistory = [
-        createMockTransaction({ id: 1, amount: 50 }),
-        createMockTransaction({ id: 2, amount: -30 }),
-      ];
+      const mockHistory = {
+        transactions: [
+          createMockTransaction({ id: 1, amount: 50 }),
+          createMockTransaction({ id: 2, amount: -30 }),
+        ],
+        total: 2,
+        limit: 50,
+        offset: 0,
+      };
       tokenService.getHistory.mockResolvedValue(mockHistory);
 
       await getHistory(req, res);
@@ -110,7 +117,12 @@ describe("tokenController", () => {
 
     it("retourne l'historique avec options personnalisées", async () => {
       req.query = { limit: "10", offset: "20", type: "credit" };
-      const mockHistory = [createMockTransaction()];
+      const mockHistory = {
+        transactions: [createMockTransaction()],
+        total: 1,
+        limit: 10,
+        offset: 20,
+      };
       tokenService.getHistory.mockResolvedValue(mockHistory);
 
       await getHistory(req, res);

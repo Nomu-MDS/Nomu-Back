@@ -69,7 +69,7 @@ export const createMockProfile = (overrides = {}) => ({
   biography: "Test biography",
   country: "France",
   city: "Paris",
-  image_url: "http://example.com/image.jpg",
+  image_url: "profiles/test-image.jpg",
   is_searchable: true,
   save: vi.fn().mockResolvedValue(true),
   update: vi.fn().mockResolvedValue(true),

@@ -35,8 +35,16 @@ vi.mock("../../../services/meilisearch/meiliProfileService.js", () => ({
 // Mock minioService
 vi.mock("../../../services/storage/minioService.js", () => ({
   default: {
-    extractPath: vi.fn((url) => url ? url.replace(/^https?:\/\/[^/]+\//, "") : url),
-    resolveUrl: vi.fn((path) => path ? `http://localhost:9000/${path}` : null),
+    extractPath: vi.fn((url) => {
+      if (!url) return null;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) return url;
+      return url.replace(/^https?:\/\/[^/]+\//, "");
+    }),
+    resolveUrl: vi.fn((path) => {
+      if (!path) return null;
+      if (path.startsWith("http://") || path.startsWith("https://")) return path;
+      return `http://localhost:9000/${path}`;
+    }),
   },
 }));
 

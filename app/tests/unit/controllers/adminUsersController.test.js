@@ -41,8 +41,12 @@ vi.mock("../../../services/meilisearch/meiliProfileService.js", () => ({
 // Mock minioService
 vi.mock("../../../services/storage/minioService.js", () => ({
   default: {
-    resolveUrl: vi.fn((path) => path ? `http://localhost:9000/${path}` : null),
-    deleteByUrl: vi.fn().mockResolvedValue(true),
+    resolveUrl: vi.fn((path) => {
+      if (!path) return null;
+      if (path.startsWith("http://") || path.startsWith("https://")) return path;
+      return `http://localhost:9000/${path}`;
+    }),
+    deleteByUrl: vi.fn().mockResolvedValue(undefined), // no-op si URL invalide
   },
 }));
 
