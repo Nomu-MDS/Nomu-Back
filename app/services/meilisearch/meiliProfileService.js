@@ -81,7 +81,7 @@ export const getCityCoordinates = (city) => {
 export const setupFilterableAttributes = async () => {
   try {
     await index.updateSettings({
-      filterableAttributes: ["interests", "city", "country", "gender"],
+      filterableAttributes: ["interests", "location", "city", "country", "gender"],
       sortableAttributes: ["_geo"],
     });
   } catch (error) {
@@ -90,6 +90,10 @@ export const setupFilterableAttributes = async () => {
     }
   }
 };
+
+function escapeFilterValue(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
 
 // Cache des villes indexées dans Meilisearch (refresh toutes les 30 min)
 let _citiesCache = [];
@@ -120,28 +124,28 @@ function buildFilter(options) {
 
   if (options.filterInterests?.length) {
     const interestFilter = options.filterInterests
-      .map(i => `interests = "${i}"`)
+      .map(i => `interests = "${escapeFilterValue(i)}"`)
       .join(" OR ");
     parts.push(`(${interestFilter})`);
   }
 
   if (options.filterCity?.length) {
     const cityFilter = options.filterCity
-      .map(c => `city = "${c}"`)
+      .map(c => `city = "${escapeFilterValue(c)}"`)
       .join(" OR ");
     parts.push(`(${cityFilter})`);
   }
 
   if (options.filterCountry?.length) {
     const countryFilter = options.filterCountry
-      .map(c => `country = "${c}"`)
+      .map(c => `country = "${escapeFilterValue(c)}"`)
       .join(" OR ");
     parts.push(`(${countryFilter})`);
   }
 
   if (options.filterSex?.length) {
     const sexFilter = options.filterSex
-      .map(s => `gender = "${s}"`)
+      .map(s => `gender = "${escapeFilterValue(s)}"`)
       .join(" OR ");
     parts.push(`(${sexFilter})`);
   }

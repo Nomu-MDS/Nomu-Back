@@ -130,6 +130,7 @@ export const updateProfile = async (req, res) => {
         biography,
         country,
         city,
+        gender,
         image_url,
         is_searchable,
       });

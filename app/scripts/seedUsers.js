@@ -246,7 +246,8 @@ const users = [
       biography: "Photographe freelance spécialisé dans le portrait urbain et l'ambiance des rues parisiennes. Grand cinéphile, je fréquente les festivals, les projections indépendantes et les lieux culturels qui font vibrer Paris au quotidien.",
       country: "France",
       city: "Paris",
-      interests: [11, 20]
+      interests: [11, 20],
+      gender: "Femme"
     },
   },
   {
@@ -261,7 +262,8 @@ const users = [
       biography: "Enseignante de yoga depuis plus de dix ans, j'accompagne les personnes en quête de bien-être, de respiration et de reconnexion à la nature. J'organise aussi des retraites en plein air et des ateliers autour du corps, du souffle et du vivant.",
       country: "France",
       city: "Paris",
-      interests: [8, 15]
+      interests: [8, 15],
+      gender: "Femme"
     },
   },
   {
@@ -276,7 +278,8 @@ const users = [
       biography: "Guitariste de jazz et peintre expressionniste, je partage ma vie entre musique et création visuelle. J'aime faire découvrir les ateliers d'artistes, les petites galeries et les lieux culturels moins connus qui donnent à Paris toute sa richesse artistique.",
       country: "France",
       city: "Paris",
-      interests: [10, 9]
+      interests: [10, 9],
+      gender: "Homme"
     },
   },
   {
@@ -291,7 +294,8 @@ const users = [
       biography: "Danseuse contemporaine et professeure de danse, je vis au rythme des répétitions, des scènes et des ateliers. Je m'intéresse aussi aux musiques du monde et aux expériences artistiques immersives qui font dialoguer corps, son et émotion.",
       country: "France",
       city: "Paris",
-      interests: [13, 10]
+      interests: [13, 10],
+      gender: "Femme"
     },
   },
   {
@@ -306,7 +310,8 @@ const users = [
       biography: "Chef formé au Cordon Bleu, je propose des dîners privés, des cours de cuisine et des expériences gastronomiques en petit comité. J'aime transmettre un savoir-faire précis tout en gardant une approche simple, généreuse et accessible.",
       country: "France",
       city: "Paris",
-      interests: [1, 12]
+      interests: [1, 12],
+      gender: "Homme"
     },
   },
   {
@@ -321,7 +326,8 @@ const users = [
       biography: "Conservatrice de musée et passionnée d'histoire de l'art, je propose des visites privées et approfondies des grands musées parisiens. Mon approche mêle regard esthétique, contexte historique et envie de rendre l'art vivant pour tous les publics.",
       country: "France",
       city: "Paris",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Femme"
     },
   },
   {
@@ -336,7 +342,8 @@ const users = [
       biography: "Reporter photo passionné par l'image documentaire et les escapades en nature, je propose des sorties photo pour apprendre à observer, composer et raconter un lieu à travers l'objectif. J'aime particulièrement les balades visuelles autour de Paris.",
       country: "France",
       city: "Paris",
-      interests: [11, 3]
+      interests: [11, 3],
+      gender: "Homme"
     },
   },
   {
@@ -351,7 +358,8 @@ const users = [
       biography: "Spécialiste de jardinage urbain et de permaculture, j'accompagne les citadins dans la création de potagers adaptés aux petits espaces. Balcons, terrasses et cours intérieures deviennent des lieux fertiles, esthétiques et vivants.",
       country: "France",
       city: "Paris",
-      interests: [17, 15]
+      interests: [17, 15],
+      gender: "Femme"
     },
   },
   {
@@ -366,7 +374,8 @@ const users = [
       biography: "Coach sportif et passionné de mobilité à vélo, j'organise des sorties urbaines pour découvrir Paris et ses environs de manière dynamique. J'aime combiner sport, bien-être et exploration de la ville dans une ambiance motivante et conviviale.",
       country: "France",
       city: "Paris",
-      interests: [14, 18]
+      interests: [14, 18],
+      gender: "Homme"
     },
   },
   {
@@ -381,7 +390,8 @@ const users = [
       biography: "Critique de cinéma et grande lectrice, j'anime des ciné-clubs, des discussions culturelles et des rencontres autour du 7e art et de la littérature. J'aime créer des moments d'échange où l'on parle d'œuvres, d'émotions et de regards sur le monde.",
       country: "France",
       city: "Paris",
-      interests: [20, 19]
+      interests: [20, 19],
+      gender: "Femme"
     },
   },
   {
@@ -396,7 +406,8 @@ const users = [
       biography: "Peintre figurative spécialisée dans le portrait, je propose des ateliers de dessin, des rencontres en atelier et des parcours artistiques pour découvrir les coulisses de la création. Mon univers mêle regard humain, sensibilité et transmission du geste.",
       country: "France",
       city: "Paris",
-      interests: [9, 11]
+      interests: [9, 11],
+      gender: "Femme"
     },
   },
   {
@@ -411,7 +422,8 @@ const users = [
       biography: "Moniteur de ski hors-piste et passionné de randonnée glaciaire, je partage ma passion pour les sommets et les grands espaces alpins. Même basé à Paris, je passe dès que possible mes week-ends et vacances à explorer la montagne.",
       country: "France",
       city: "Paris",
-      interests: [5, 4]
+      interests: [5, 4],
+      gender: "Homme"
     },
   },
   {
@@ -426,7 +438,8 @@ const users = [
       biography: "J'enseigne la danse orientale et le yoga à Paris, avec une approche centrée sur l'écoute du corps, la fluidité et la confiance en soi. Mes cours et ateliers mêlent énergie, ancrage et plaisir de bouger dans un cadre bienveillant.",
       country: "France",
       city: "Paris",
-      interests: [13, 8]
+      interests: [13, 8],
+      gender: "Femme"
     },
   },
   {
@@ -441,7 +454,8 @@ const users = [
       biography: "Sommelier dans un restaurant étoilé à Paris, j'organise des dégustations privées, des accords mets-vins et des visites de caves pour les amateurs comme pour les curieux. J'aime raconter les terroirs, les cépages et les histoires derrière chaque bouteille.",
       country: "France",
       city: "Paris",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
 
@@ -458,7 +472,8 @@ const users = [
       biography: "Monitrice de surf et de paddle sur la côte méditerranéenne, j'accompagne les amateurs de glisse dans une ambiance sportive et décontractée. J'aime partager l'énergie de la mer, le goût de l'effort et le plaisir d'être dehors toute l'année.",
       country: "France",
       city: "Montpellier",
-      interests: [6, 18]
+      interests: [6, 18],
+      gender: "Femme"
     },
   },
   {
@@ -473,7 +488,8 @@ const users = [
       biography: "Passionné d'histoire catalane et romaine, j'organise des visites guidées autour des sites archéologiques et du patrimoine du Roussillon. J'aime faire revivre les lieux anciens à travers anecdotes, contextes historiques et passion du terrain.",
       country: "France",
       city: "Perpignan",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Homme"
     },
   },
   {
@@ -488,7 +504,8 @@ const users = [
       biography: "Coach bien-être certifiée à Nice, je propose des séances de yoga en bord de mer, des moments de méditation et des accompagnements en sophrologie. Mon objectif est d'aider chacun à retrouver calme, énergie et équilibre dans un cadre inspirant.",
       country: "France",
       city: "Nice",
-      interests: [8, 15]
+      interests: [8, 15],
+      gender: "Femme"
     },
   },
   {
@@ -503,7 +520,8 @@ const users = [
       biography: "Réalisateur de courts-métrages et photographe de rue, je vis à Cannes au rythme du cinéma et de la création visuelle. Je partage ma passion pour les festivals, la narration par l'image et les coulisses de la culture cinématographique.",
       country: "France",
       city: "Cannes",
-      interests: [20, 9]
+      interests: [20, 9],
+      gender: "Homme"
     },
   },
   {
@@ -518,7 +536,8 @@ const users = [
       biography: "Monitrice PADI et biologiste marine, j'organise des plongées autour de Toulon pour explorer les épaves, observer la faune sous-marine et sensibiliser à la richesse fragile des écosystèmes marins méditerranéens.",
       country: "France",
       city: "Toulon",
-      interests: [7, 18]
+      interests: [7, 18],
+      gender: "Femme"
     },
   },
   {
@@ -533,7 +552,8 @@ const users = [
       biography: "Cycliste amateur et amoureux des paysages du sud, je connais les belles routes de l'Hérault, les sentiers de garrigue et les vignobles du Languedoc. J'aime proposer des sorties mêlant effort, découverte et plaisir du plein air.",
       country: "France",
       city: "Montpellier",
-      interests: [14, 15]
+      interests: [14, 15],
+      gender: "Homme"
     },
   },
   {
@@ -548,7 +568,8 @@ const users = [
       biography: "Cheffe spécialisée dans la cuisine niçoise et méditerranéenne, je propose des cours gourmands et des visites de marchés pour découvrir produits locaux, recettes authentiques et art de vivre du Sud. La convivialité est toujours au centre de mes expériences.",
       country: "France",
       city: "Nice",
-      interests: [1, 12]
+      interests: [1, 12],
+      gender: "Femme"
     },
   },
   {
@@ -563,7 +584,8 @@ const users = [
       biography: "Passionné de randonnée et de sport nature, j'organise des sorties dans les Calanques et les massifs provençaux pour découvrir des panoramas incroyables. J'aime les aventures dynamiques, accessibles et ancrées dans le territoire local.",
       country: "France",
       city: "Marseille",
-      interests: [3, 18]
+      interests: [3, 18],
+      gender: "Homme"
     },
   },
   {
@@ -578,7 +600,8 @@ const users = [
       biography: "Spécialiste du patrimoine médiéval provençal, j'accompagne les visiteurs à la découverte des grandes richesses historiques d'Avignon et de sa région. Mes visites mêlent précision historique, passion du récit et amour de l'architecture ancienne.",
       country: "France",
       city: "Avignon",
-      interests: [16, 9]
+      interests: [16, 9],
+      gender: "Femme"
     },
   },
   {
@@ -593,7 +616,8 @@ const users = [
       biography: "Double moniteur de surf et de plongée, je propose des sessions adaptées aux conditions entre Canet et Leucate. J'aime faire découvrir la diversité des activités nautiques du littoral méditerranéen, de la glisse en surface aux merveilles sous-marines.",
       country: "France",
       city: "Perpignan",
-      interests: [6, 7]
+      interests: [6, 7],
+      gender: "Homme"
     },
   },
   {
@@ -608,7 +632,8 @@ const users = [
       biography: "Professeure de danse d'origine andalouse, je transmets à Montpellier l'énergie du flamenco et la grâce de la danse orientale. Mes cours et soirées culturelles sont pensés comme des moments de partage, d'expression et de découverte.",
       country: "France",
       city: "Montpellier",
-      interests: [13, 10]
+      interests: [13, 10],
+      gender: "Femme"
     },
   },
   {
@@ -623,7 +648,8 @@ const users = [
       biography: "Photographe animalière et de paysage, je propose des stages dans les Alpes-Maritimes pour apprendre à capter la lumière, observer la faune et créer des images inspirées par la nature. Mon travail mêle patience, émotion et regard attentif.",
       country: "France",
       city: "Nice",
-      interests: [11, 15]
+      interests: [11, 15],
+      gender: "Femme"
     },
   },
   {
@@ -638,7 +664,8 @@ const users = [
       biography: "Sommelier et caviste passionné, je fais découvrir les vins de Provence à travers des dégustations privées, des visites de domaines et des échanges sur les cépages, les terroirs et les accords. Mon approche est à la fois accessible, précise et conviviale.",
       country: "France",
       city: "Aix-en-Provence",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
 
@@ -655,7 +682,8 @@ const users = [
       biography: "Amoureux de la côte Atlantique, je partage ma passion pour le surf, la plongée et l'exploration des fonds marins de Charente-Maritime. Entre vagues, récifs et ambiance océane, j'aime faire découvrir un littoral vivant et inspirant.",
       country: "France",
       city: "La Rochelle",
-      interests: [6, 7]
+      interests: [6, 7],
+      gender: "Homme"
     },
   },
   {
@@ -670,7 +698,8 @@ const users = [
       biography: "Passionnée de randonnée sur le GR34, je fais découvrir les plus belles portions du littoral breton entre falaises, criques et phares. Mes balades privilégient le rythme, l'observation et le plaisir simple des grands paysages marins.",
       country: "France",
       city: "Brest",
-      interests: [3, 15]
+      interests: [3, 15],
+      gender: "Femme"
     },
   },
   {
@@ -685,7 +714,8 @@ const users = [
       biography: "Skipper et passionné d'histoire maritime, je propose des navigations à voile ainsi que des récits autour du patrimoine corsaire de Saint-Malo. J'aime transmettre la mémoire des grands voyages, de la mer et des légendes du littoral.",
       country: "France",
       city: "Saint-Malo",
-      interests: [18, 16]
+      interests: [18, 16],
+      gender: "Homme"
     },
   },
   {
@@ -700,7 +730,8 @@ const users = [
       biography: "Professeure de yoga en bord de mer, j'organise des séances au lever du soleil sur les plages charentaises. Mon approche met l'accent sur la respiration, l'ancrage et le lien profond entre mouvement, nature et bien-être.",
       country: "France",
       city: "La Rochelle",
-      interests: [8, 15]
+      interests: [8, 15],
+      gender: "Femme"
     },
   },
   {
@@ -715,7 +746,8 @@ const users = [
       biography: "Photographe spécialisé dans les paysages côtiers bretons, j'organise des stages au lever du jour pour apprendre à capturer la lumière, les textures marines et les grands horizons du Finistère. Mon univers est contemplatif et profondément lié à l'océan.",
       country: "France",
       city: "Brest",
-      interests: [11, 15]
+      interests: [11, 15],
+      gender: "Homme"
     },
   },
   {
@@ -730,7 +762,8 @@ const users = [
       biography: "Cuisinière passionnée de gastronomie bretonne, je cultive aussi un grand potager qui nourrit ma cuisine du quotidien. J'anime des ateliers autour des produits locaux, des recettes de terroir et de la convivialité qui accompagne toujours un bon repas.",
       country: "France",
       city: "Rennes",
-      interests: [12, 17]
+      interests: [12, 17],
+      gender: "Femme"
     },
   },
   {
@@ -745,7 +778,8 @@ const users = [
       biography: "Passionné par les vignobles du Val de Loire, j'organise des visites de caves et des dégustations mettant à l'honneur les vins d'Anjou, de Loire et des environs. J'aime faire découvrir les terroirs, les producteurs et les saveurs locales avec simplicité.",
       country: "France",
       city: "Angers",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
   {
@@ -760,7 +794,8 @@ const users = [
       biography: "Historienne spécialisée dans l'histoire de Bretagne, je fais découvrir les sites mégalithiques, les châteaux et les grandes étapes culturelles de la région. Mes visites cherchent à transmettre autant des connaissances que l'émotion des lieux.",
       country: "France",
       city: "Rennes",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Femme"
     },
   },
 
@@ -777,7 +812,8 @@ const users = [
       biography: "Guide de haute montagne certifié, je propose des ascensions, des sorties d'initiation et des découvertes des massifs autour de Grenoble. Le Vercors, la Chartreuse ou Belledonne sont pour moi des terrains de jeu exceptionnels à partager.",
       country: "France",
       city: "Grenoble",
-      interests: [5, 4]
+      interests: [5, 4],
+      gender: "Homme"
     },
   },
   {
@@ -792,7 +828,8 @@ const users = [
       biography: "Passionnée de randonnée et de flore alpine, j'organise des sorties nature autour d'Annecy pour observer, apprendre et profiter de la montagne autrement. J'aime transmettre une approche sensible et curieuse du monde vivant.",
       country: "France",
       city: "Annecy",
-      interests: [3, 15]
+      interests: [3, 15],
+      gender: "Femme"
     },
   },
   {
@@ -807,7 +844,8 @@ const users = [
       biography: "Moniteur ESF passionné de ski, snowboard et raquettes, je guide petits et grands dans les stations savoyardes et les espaces plus sauvages. J'aime transmettre la confiance, le plaisir de glisser et le respect du milieu montagnard.",
       country: "France",
       city: "Chambéry",
-      interests: [5, 4]
+      interests: [5, 4],
+      gender: "Homme"
     },
   },
   {
@@ -822,7 +860,8 @@ const users = [
       biography: "Cycliste licenciée et coach sportive, j'organise des sorties dans les cols mythiques des Alpes pour tous ceux qui aiment l'effort, le dépassement de soi et les paysages spectaculaires. J'accompagne aussi les débutants motivés à progresser.",
       country: "France",
       city: "Grenoble",
-      interests: [14, 18]
+      interests: [14, 18],
+      gender: "Femme"
     },
   },
   {
@@ -837,7 +876,8 @@ const users = [
       biography: "Photographe spécialisée dans les paysages alpins, j'aime capturer les premiers instants du jour autour du lac d'Annecy et des sommets environnants. Mes sorties photo invitent à ralentir, observer et composer avec la lumière naturelle.",
       country: "France",
       city: "Annecy",
-      interests: [11, 15]
+      interests: [11, 15],
+      gender: "Femme"
     },
   },
   {
@@ -852,7 +892,8 @@ const users = [
       biography: "Alpiniste passionné et accompagnateur de randonnée, j'organise des treks et des ascensions accessibles en Vanoise et dans les massifs voisins. J'aime partager l'esprit de la montagne, l'entraide et le goût de l'aventure en pleine nature.",
       country: "France",
       city: "Chambéry",
-      interests: [4, 3]
+      interests: [4, 3],
+      gender: "Homme"
     },
   },
   {
@@ -867,7 +908,8 @@ const users = [
       biography: "Je cultive des herbes aromatiques et je partage ma passion pour la cuisine alpine à travers des cours chaleureux et gourmands. Mon univers mêle jardin, recettes régionales et plaisir de cuisiner avec des produits simples et authentiques.",
       country: "France",
       city: "Valence",
-      interests: [1, 17]
+      interests: [1, 17],
+      gender: "Femme"
     },
   },
   {
@@ -882,7 +924,8 @@ const users = [
       biography: "Skieur hors-piste passionné par les pentes de Belledonne et les itinéraires engagés, je propose des sorties encadrées en mettant toujours la sécurité au cœur de l'expérience. L'idée est de vivre la montagne intensément, mais intelligemment.",
       country: "France",
       city: "Grenoble",
-      interests: [5, 3]
+      interests: [5, 3],
+      gender: "Homme"
     },
   },
   {
@@ -897,7 +940,8 @@ const users = [
       biography: "Professeure de yoga et de méditation, j'organise des retraites bien-être dans les Alpes autour du mouvement, du calme intérieur et de la reconnexion à la nature. Le cadre d'Annecy est pour moi une source d'équilibre et d'inspiration.",
       country: "France",
       city: "Annecy",
-      interests: [8, 15]
+      interests: [8, 15],
+      gender: "Femme"
     },
   },
   {
@@ -912,7 +956,8 @@ const users = [
       biography: "Randonneur expérimenté et photographe de nature, je parcours le Vercors et la Chartreuse pour observer la faune, saisir les lumières changeantes et partager la beauté discrète des paysages alpins avec d'autres passionnés.",
       country: "France",
       city: "Grenoble",
-      interests: [3, 11]
+      interests: [3, 11],
+      gender: "Homme"
     },
   },
 
@@ -929,7 +974,8 @@ const users = [
       biography: "Historien spécialisé dans le duché de Lorraine, je propose des visites guidées pour explorer Nancy, son héritage baroque et ses trésors médiévaux. J'aime donner vie à l'histoire en racontant les lieux, les époques et les personnages qui les ont façonnés.",
       country: "France",
       city: "Nancy",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Homme"
     },
   },
   {
@@ -944,7 +990,8 @@ const users = [
       biography: "Je partage avec enthousiasme la gastronomie alsacienne à travers des cours de cuisine traditionnelle et des moments de découverte autour des spécialités régionales. Choucroute, baeckeoffe, bredele et autres recettes prennent vie dans une ambiance chaleureuse.",
       country: "France",
       city: "Strasbourg",
-      interests: [12, 1]
+      interests: [12, 1],
+      gender: "Femme"
     },
   },
   {
@@ -959,7 +1006,8 @@ const users = [
       biography: "Artiste plasticien et photographe, j'explore les liens entre matière, lumière et émotion à travers mes ateliers. Mon univers mêle peinture à l'huile, expérimentation visuelle et échanges autour de l'art moderne et contemporain.",
       country: "France",
       city: "Metz",
-      interests: [9, 11]
+      interests: [9, 11],
+      gender: "Homme"
     },
   },
   {
@@ -974,7 +1022,8 @@ const users = [
       biography: "Violoniste et danseuse folklorique, je fais vivre les traditions musicales alsaciennes à travers des ateliers, des soirées et des événements culturels. J'aime transmettre l'énergie de la musique vivante et la richesse du patrimoine régional.",
       country: "France",
       city: "Strasbourg",
-      interests: [10, 13]
+      interests: [10, 13],
+      gender: "Femme"
     },
   },
   {
@@ -989,7 +1038,8 @@ const users = [
       biography: "Passionné de randonnée dans les Vosges, je connais les plus beaux itinéraires entre lacs, chaumes et forêts profondes. J'aime proposer des sorties nature où l'on prend le temps de marcher, respirer et profiter pleinement des paysages.",
       country: "France",
       city: "Nancy",
-      interests: [3, 15]
+      interests: [3, 15],
+      gender: "Homme"
     },
   },
   {
@@ -1004,7 +1054,8 @@ const users = [
       biography: "Passionnée de littérature et de cinéma d'auteur, j'anime un ciné-club et j'organise des soirées lectures à Metz. J'aime créer des moments de discussion autour des œuvres, des sensibilités artistiques et des idées qu'elles font naître.",
       country: "France",
       city: "Metz",
-      interests: [20, 19]
+      interests: [20, 19],
+      gender: "Femme"
     },
   },
   {
@@ -1019,7 +1070,8 @@ const users = [
       biography: "Grand passionné des vins d'Alsace, je partage volontiers mes connaissances sur les cépages, les domaines et les accords gastronomiques de la région. J'aime les dégustations conviviales où le plaisir du goût rencontre la richesse du terroir.",
       country: "France",
       city: "Strasbourg",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
   {
@@ -1034,7 +1086,8 @@ const users = [
       biography: "Coach sportive certifiée et enseignante de yoga, j'accompagne celles et ceux qui souhaitent retrouver énergie, confiance et équilibre. Mes séances à Nancy mêlent renforcement, respiration et écoute du corps dans une approche bienveillante.",
       country: "France",
       city: "Nancy",
-      interests: [8, 18]
+      interests: [8, 18],
+      gender: "Femme"
     },
   },
   {
@@ -1049,7 +1102,8 @@ const users = [
       biography: "Photographe amateur passionnée par la nature alsacienne, je propose des balades photo dans le Ried et les Vosges pour observer la cigogne blanche, les lumières des plaines rhénanes et la poésie des paysages locaux.",
       country: "France",
       city: "Strasbourg",
-      interests: [11, 15]
+      interests: [11, 15],
+      gender: "Femme"
     },
   },
 
@@ -1066,7 +1120,8 @@ const users = [
       biography: "Surfeur professionnel engagé sur le circuit européen, je propose des cours de surf entre Biarritz et Hossegor pour tous les niveaux. J'aime transmettre à la fois la technique, la lecture des vagues et l'esprit libre propre à la côte basque.",
       country: "France",
       city: "Bayonne",
-      interests: [6, 18]
+      interests: [6, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1081,7 +1136,8 @@ const users = [
       biography: "Guide de randonnée dans les Pyrénées béarnaises, je fais découvrir les cols, vallées, lacs d'altitude et refuges emblématiques de la région. J'aime proposer des aventures accessibles et sincères, ancrées dans la beauté du terrain.",
       country: "France",
       city: "Pau",
-      interests: [3, 4]
+      interests: [3, 4],
+      gender: "Femme"
     },
   },
   {
@@ -1096,7 +1152,8 @@ const users = [
       biography: "Musicien de jazz et amateur de cinéma, je partage mon temps entre concerts, festivals et projections inspirantes. J'aime la richesse culturelle du Pays Basque et les moments où musique, image et convivialité se rencontrent.",
       country: "France",
       city: "Bayonne",
-      interests: [10, 20]
+      interests: [10, 20],
+      gender: "Homme"
     },
   },
   {
@@ -1111,7 +1168,8 @@ const users = [
       biography: "Cheffe spécialisée dans la cuisine gasconne et occitane, je propose des ateliers gourmands autour des spécialités régionales, des marchés locaux et des accords savoureux. Mon approche met à l'honneur la générosité et l'identité culinaire du Sud-Ouest.",
       country: "France",
       city: "Toulouse",
-      interests: [1, 12]
+      interests: [1, 12],
+      gender: "Femme"
     },
   },
   {
@@ -1126,7 +1184,8 @@ const users = [
       biography: "Guide de montagne passionné par les Pyrénées, j'accompagne les amateurs de ski, de randonnée et d'altitude à travers des paysages puissants et variés. Mon objectif est de faire vivre une expérience à la fois sportive, sûre et mémorable.",
       country: "France",
       city: "Pau",
-      interests: [5, 4]
+      interests: [5, 4],
+      gender: "Homme"
     },
   },
   {
@@ -1141,7 +1200,8 @@ const users = [
       biography: "Je partage ma passion pour le surf et la plongée entre la côte basque et les Landes, avec des initiations et des sorties toute l'année. J'aime montrer la diversité des plaisirs de l'océan, entre glisse, respiration et exploration.",
       country: "France",
       city: "Bayonne",
-      interests: [6, 7]
+      interests: [6, 7],
+      gender: "Homme"
     },
   },
   {
@@ -1156,7 +1216,8 @@ const users = [
       biography: "J'enseigne le tango argentin et le yoga yin avec une attention particulière à la présence, au lien et à l'expression du corps. Entre milongas, ateliers et retraites, j'aime créer des espaces où l'on se reconnecte à soi et aux autres.",
       country: "France",
       city: "Toulouse",
-      interests: [13, 8]
+      interests: [13, 8],
+      gender: "Femme"
     },
   },
   {
@@ -1171,7 +1232,8 @@ const users = [
       biography: "Producteur passionné, je fais découvrir les vins de Bergerac et de Monbazillac à travers des visites de domaine et des dégustations gourmandes accompagnées de spécialités du Périgord. Mon univers mêle terroir, transmission et authenticité.",
       country: "France",
       city: "Périgueux",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
   {
@@ -1186,7 +1248,8 @@ const users = [
       biography: "Spécialiste de l'histoire cathare et médiévale, je propose des visites et parcours culturels autour de Carcassonne, Minerve et des châteaux cathares. J'aime faire ressentir la puissance historique et symbolique de ces lieux uniques.",
       country: "France",
       city: "Toulouse",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Femme"
     },
   },
 
@@ -1203,7 +1266,8 @@ const users = [
       biography: "Passionné des volcans d'Auvergne, je propose des randonnées sur les puys et dans les vallées du Massif Central. Mes sorties allient découverte géologique, amour de la nature et plaisir simple de marcher dans des paysages puissants.",
       country: "France",
       city: "Clermont-Ferrand",
-      interests: [3, 15]
+      interests: [3, 15],
+      gender: "Homme"
     },
   },
   {
@@ -1218,7 +1282,8 @@ const users = [
       biography: "Caviste expert et amoureux de la Bourgogne viticole, j'organise des dégustations et des parcours sur la Route des Grands Crus. J'aime transmettre les subtilités des appellations, des terroirs et des accords gastronomiques bourguignons.",
       country: "France",
       city: "Dijon",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Homme"
     },
   },
   {
@@ -1233,7 +1298,8 @@ const users = [
       biography: "Coach sportive et triathlète, j'accompagne les personnes qui veulent progresser en course, en endurance ou simplement retrouver une dynamique active. Les volcans d'Auvergne offrent un terrain idéal pour allier entraînement et inspiration.",
       country: "France",
       city: "Clermont-Ferrand",
-      interests: [8, 18]
+      interests: [8, 18],
+      gender: "Femme"
     },
   },
   {
@@ -1248,7 +1314,8 @@ const users = [
       biography: "Historien spécialisé dans la Seconde Guerre mondiale et la Résistance, je propose des conférences et des visites mémorielles dans le Cher. Mon travail vise à transmettre les faits, les parcours humains et l'importance du devoir de mémoire.",
       country: "France",
       city: "Bourges",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Homme"
     },
   },
   {
@@ -1263,7 +1330,8 @@ const users = [
       biography: "Photographe et peintre aquarelliste, j'organise des ateliers créatifs dans les vignes et les abbayes de Bourgogne. J'aime mêler contemplation, expression artistique et inspiration patrimoniale dans des cadres apaisants.",
       country: "France",
       city: "Dijon",
-      interests: [9, 11]
+      interests: [9, 11],
+      gender: "Femme"
     },
   },
   {
@@ -1278,7 +1346,8 @@ const users = [
       biography: "Cycliste compétiteur et coach sportif, j'organise des sorties dans le Beaujolais et les Monts du Lyonnais pour tous les niveaux. Mon approche combine rigueur, motivation et plaisir de pédaler ensemble dans de beaux paysages.",
       country: "France",
       city: "Lyon",
-      interests: [14, 18]
+      interests: [14, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1293,7 +1362,8 @@ const users = [
       biography: "Je pratique le ski de fond, les raquettes et la randonnée toute l'année autour du Mont-Dore et du Super-Besse. J'aime faire découvrir une Auvergne sportive, naturelle et accessible, loin des itinéraires les plus fréquentés.",
       country: "France",
       city: "Clermont-Ferrand",
-      interests: [5, 3]
+      interests: [5, 3],
+      gender: "Homme"
     },
   },
   {
@@ -1308,7 +1378,8 @@ const users = [
       biography: "Paysagiste passionnée, je partage mon amour des jardins bourguignons, des plantes aromatiques et des espaces vivants. J'aime transmettre des savoir-faire simples et poétiques autour du végétal, du soin du sol et de la beauté des jardins.",
       country: "France",
       city: "Dijon",
-      interests: [17, 15]
+      interests: [17, 15],
+      gender: "Femme"
     },
   },
 
@@ -1325,7 +1396,8 @@ const users = [
       biography: "Historien spécialisé dans le Débarquement de Normandie, je propose des visites documentées et sensibles des plages, musées et mémoriaux. J'accorde une grande importance à la transmission des faits autant qu'au respect de la mémoire humaine.",
       country: "France",
       city: "Caen",
-      interests: [16, 11]
+      interests: [16, 11],
+      gender: "Homme"
     },
   },
   {
@@ -1340,7 +1412,8 @@ const users = [
       biography: "Je produis du cidre normand et j'organise des ateliers de cuisine autour des recettes emblématiques de la région. Entre verger, produits fermiers et traditions locales, je partage une Normandie gourmande et profondément authentique.",
       country: "France",
       city: "Caen",
-      interests: [1, 12]
+      interests: [1, 12],
+      gender: "Femme"
     },
   },
   {
@@ -1355,7 +1428,8 @@ const users = [
       biography: "Cyclotouriste passionné, j'organise des sorties sur les routes de Normandie entre Seine, plateaux et campagne. J'aime faire découvrir des parcours variés qui mêlent patrimoine, nature et plaisir d'avancer au rythme du vélo.",
       country: "France",
       city: "Rouen",
-      interests: [14, 15]
+      interests: [14, 15],
+      gender: "Homme"
     },
   },
   {
@@ -1370,7 +1444,8 @@ const users = [
       biography: "Artiste céramiste inspirée par les terres de Limoges, je propose des ateliers de poterie et de création manuelle. Mon univers s'étend aussi au jardinage naturel, dans une recherche de lien entre matière, patience et beauté du vivant.",
       country: "France",
       city: "Limoges",
-      interests: [9, 17]
+      interests: [9, 17],
+      gender: "Femme"
     },
   },
   {
@@ -1385,7 +1460,8 @@ const users = [
       biography: "Passionné de cyclisme et des itinéraires qui longent la Loire, j'organise des sorties entre fleuve, forêt et villages de caractère. J'aime proposer des parcours accessibles qui combinent effort, découverte et plaisir du voyage à vélo.",
       country: "France",
       city: "Orléans",
-      interests: [14, 18]
+      interests: [14, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1400,7 +1476,8 @@ const users = [
       biography: "Libraire indépendante et amoureuse du cinéma, j'anime des clubs de lecture et des ciné-clubs pour faire dialoguer textes, images et idées. J'aime créer des espaces chaleureux où la culture devient une expérience vivante et partagée.",
       country: "France",
       city: "Le Mans",
-      interests: [20, 19]
+      interests: [20, 19],
+      gender: "Femme"
     },
   },
   {
@@ -1415,7 +1492,8 @@ const users = [
       biography: "Spécialiste de l'art roman poitevin, je propose des visites approfondies des baptistères, cryptes et abbayes de la région. J'aime transmettre l'élégance discrète de ce patrimoine et les histoires spirituelles et architecturales qui l'accompagnent.",
       country: "France",
       city: "Poitiers",
-      interests: [16, 19]
+      interests: [16, 19],
+      gender: "Homme"
     },
   },
   {
@@ -1430,7 +1508,8 @@ const users = [
       biography: "Vigneronne indépendante dans l'appellation Saint-Chinian, je propose des visites du domaine et des dégustations autour de vins naturels, vivants et expressifs. J'aime faire découvrir le travail de la vigne au verre avec simplicité et passion.",
       country: "France",
       city: "Béziers",
-      interests: [2, 1]
+      interests: [2, 1],
+      gender: "Femme"
     },
   },
   {
@@ -1445,7 +1524,8 @@ const users = [
       biography: "Peintre et passionné d'art catalan, je fais découvrir les retables baroques, les musées régionaux et les grandes influences artistiques du territoire. Mon regard mêle pratique artistique personnelle et profonde connaissance du patrimoine local.",
       country: "France",
       city: "Perpignan",
-      interests: [9, 16]
+      interests: [9, 16],
+      gender: "Homme"
     },
   },
   {
@@ -1460,7 +1540,8 @@ const users = [
       biography: "J'enseigne la danse afro et le yoga vinyasa à Bordeaux dans une approche énergique, fluide et inclusive. Mes cours hebdomadaires et stages intensifs invitent à se reconnecter à soi, à son corps et au plaisir de bouger librement.",
       country: "France",
       city: "Bordeaux",
-      interests: [13, 8]
+      interests: [13, 8],
+      gender: "Femme"
     },
   },
   {
@@ -1475,7 +1556,8 @@ const users = [
       biography: "Compétiteur en triathlon et passionné de surf, je m'entraîne entre Bordeaux, Lacanau et la côte landaise. J'aime le mélange entre endurance, technique, dépassement de soi et liberté que procurent le sport et l'océan.",
       country: "France",
       city: "Bordeaux",
-      interests: [6, 18]
+      interests: [6, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1490,7 +1572,8 @@ const users = [
       biography: "Flûtiste traversière et danseuse bretonne, je fais vivre la culture celtique à travers concerts, fest-noz et ateliers. J'aime transmettre l'énergie collective, la musicalité et la convivialité propres aux traditions bretonnes.",
       country: "France",
       city: "Rennes",
-      interests: [10, 13]
+      interests: [10, 13],
+      gender: "Femme"
     },
   },
   {
@@ -1505,7 +1588,8 @@ const users = [
       biography: "Plongeur passionné de la Manche et des paysages côtiers normands, j'organise des explorations sous-marines autour du Havre. Mon univers mêle adrénaline, curiosité naturelle et amour des environnements marins souvent méconnus.",
       country: "France",
       city: "Le Havre",
-      interests: [7, 18]
+      interests: [7, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1520,7 +1604,8 @@ const users = [
       biography: "Jardinière passionnée et botaniste amateur, j'anime des balades botaniques et des ateliers autour des plantes aromatiques et du jardin naturel. Mon approche met en valeur l'observation, la transmission et le lien avec les saisons.",
       country: "France",
       city: "Orléans",
-      interests: [17, 15]
+      interests: [17, 15],
+      gender: "Femme"
     },
   },
   {
@@ -1535,7 +1620,8 @@ const users = [
       biography: "Passionné de ski de fond et de randonnée dans le Jura, je fais découvrir les forêts, crêtes et belvédères les plus inspirants de la région. J'aime la nature calme, les sports d'hiver accessibles et les paysages qui invitent à respirer.",
       country: "France",
       city: "Besançon",
-      interests: [5, 3]
+      interests: [5, 3],
+      gender: "Homme"
     },
   },
   {
@@ -1550,7 +1636,8 @@ const users = [
       biography: "Étudiante en cinéma et lectrice passionnée, j'organise des ciné-débats et des cercles de lecture pour partager des œuvres, des émotions et des interprétations. J'aime les échanges sincères autour de la culture et des idées qu'elle fait naître.",
       country: "France",
       city: "Nancy",
-      interests: [20, 19]
+      interests: [20, 19],
+      gender: "Femme"
     },
   },
   {
@@ -1565,7 +1652,8 @@ const users = [
       biography: "Photographe de rue, je me spécialise dans le street art et les textures urbaines de Marseille. J'aime explorer les quartiers vivants, capter les détails graphiques et partager une vision authentique et moderne de la ville.",
       country: "France",
       city: "Marseille",
-      interests: [11, 9]
+      interests: [11, 9],
+      gender: "Homme"
     },
   },
   {
@@ -1580,7 +1668,8 @@ const users = [
       biography: "Professeure de yoga restauratif et de danse contemporaine, j'accompagne les personnes qui veulent habiter leur corps avec plus de fluidité et de confiance. Mon studio à Lyon accueille tous les niveaux dans une ambiance calme et bienveillante.",
       country: "France",
       city: "Lyon",
-      interests: [8, 13]
+      interests: [8, 13],
+      gender: "Femme"
     },
   },
   {
@@ -1595,7 +1684,8 @@ const users = [
       biography: "Cycliste régulier sur les routes alpines, j'organise des sorties vers la Chartreuse, le Vercors et les cols emblématiques autour de Grenoble. J'aime la camaraderie du groupe, la beauté des reliefs et la satisfaction de l'effort partagé.",
       country: "France",
       city: "Grenoble",
-      interests: [14, 18]
+      interests: [14, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1610,7 +1700,8 @@ const users = [
       biography: "Cheffe pâtissière et enseignante, je propose des cours autour de la viennoiserie, des macarons et des pâtisseries de fête. J'aime rendre la pâtisserie accessible, précise et joyeuse, tout en transmettant le goût du beau et du bon.",
       country: "France",
       city: "Paris",
-      interests: [12, 1]
+      interests: [12, 1],
+      gender: "Femme"
     },
   },
 
@@ -1627,7 +1718,8 @@ const users = [
       biography: "Surfeur de Lacanau et triathlète en devenir, je partage mon temps entre entraînements sportifs et sessions sur la côte atlantique. J'aime le rythme de vie actif, le contact avec les éléments et les défis qui font progresser.",
       country: "France",
       city: "Bordeaux",
-      interests: [6, 18]
+      interests: [6, 18],
+      gender: "Homme"
     },
   },
   {
@@ -1642,7 +1734,8 @@ const users = [
       biography: "Peintre expressionniste et violoniste, j'évolue dans un univers où la musique et la couleur se répondent. J'expose dans les galeries lyonnaises et donne des concerts de musique de chambre avec une sensibilité tournée vers l'émotion artistique.",
       country: "France",
       city: "Lyon",
-      interests: [9, 10]
+      interests: [9, 10],
+      gender: "Femme"
     },
   },
   {
@@ -1657,7 +1750,8 @@ const users = [
       biography: "Coach fitness et professeur de yoga dynamique, j'accompagne celles et ceux qui veulent retrouver forme, mobilité et énergie. Mes séances en extérieur et mes coachings individuels allient intensité, respiration et équilibre durable.",
       country: "France",
       city: "Montpellier",
-      interests: [18, 8]
+      interests: [18, 8],
+      gender: "Homme"
     },
   },
   {
@@ -1672,7 +1766,8 @@ const users = [
       biography: "Passionné de randonnée et de cyclotourisme, je connais les sentiers de Bretagne et les plus belles portions du littoral finistérien. J'aime les expériences simples, sportives et ressourçantes qui mettent le territoire à l'honneur.",
       country: "France",
       city: "Rennes",
-      interests: [3, 14]
+      interests: [3, 14],
+      gender: "Homme"
     },
   },
   {
@@ -1687,7 +1782,8 @@ const users = [
       biography: "Spécialiste de la cuisine traditionnelle lyonnaise, j'organise des cours gourmands et des visites de marchés pour faire découvrir les produits et recettes emblématiques de la ville. Le goût du partage est au centre de ma manière de cuisiner.",
       country: "France",
       city: "Lyon",
-      interests: [12, 17]
+      interests: [12, 17],
+      gender: "Femme"
     },
   },
   {
@@ -1702,7 +1798,8 @@ const users = [
       biography: "Surfeur passionné et photographe de vagues, je capture les meilleurs swells de la côte atlantique charentaise. J'aime raconter la mer à travers l'image, entre sport, mouvement et fascination pour les éléments naturels.",
       country: "France",
       city: "La Rochelle",
-      interests: [6, 11]
+      interests: [6, 11],
+      gender: "Homme"
     },
   },
   {
@@ -1717,7 +1814,8 @@ const users = [
       biography: "J'enseigne les danses de salon et je joue du piano avec un goût particulier pour l'élégance du mouvement et de la musique. À Nantes, j'aime créer des moments raffinés, accessibles et chaleureux autour de l'art du rythme et du lien.",
       country: "France",
       city: "Nantes",
-      interests: [13, 10]
+      interests: [13, 10],
+      gender: "Femme"
     },
   },
   {
@@ -1732,7 +1830,8 @@ const users = [
       biography: "Historien de l'art et guide au Centre Pompidou-Metz, j'anime des conférences et des ateliers autour de l'art moderne et contemporain. J'aime rendre les œuvres accessibles en les reliant aux émotions, au contexte et aux regards d'aujourd'hui.",
       country: "France",
       city: "Metz",
-      interests: [16, 9]
+      interests: [16, 9],
+      gender: "Homme"
     },
   },
   {
@@ -1747,7 +1846,8 @@ const users = [
       biography: "Réalisatrice de courts-métrages et peintre, je vis entre narration visuelle et création plastique. Membre de l'Institut Lumière, je suis passionnée par l'histoire du cinéma lyonnais et les liens entre image, mémoire et émotion.",
       country: "France",
       city: "Lyon",
-      interests: [20, 9]
+      interests: [20, 9],
+      gender: "Femme"
     },
   },
   {
@@ -1762,7 +1862,8 @@ const users = [
       biography: "Maraîchère bio et paysagiste, j'anime des ateliers de jardinage naturel et de création de potagers en permaculture. J'aime transmettre des pratiques concrètes, durables et joyeuses pour remettre le vivant au cœur du quotidien.",
       country: "France",
       city: "Montauban",
-      interests: [17, 15]
+      interests: [17, 15],
+      gender: "Femme"
     },
   },
 ];

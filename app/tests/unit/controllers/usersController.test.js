@@ -30,6 +30,8 @@ vi.mock("../../../services/meilisearch/meiliProfileService.js", () => ({
   removeProfileFromIndex: vi.fn().mockResolvedValue(true),
   searchProfilesEnriched: vi.fn().mockResolvedValue({ hits: [] }),
   searchProfiles: vi.fn().mockResolvedValue({ hits: [] }),
+  getCachedCities: vi.fn().mockResolvedValue([]),
+  getCityCoordinates: vi.fn().mockReturnValue(null),
 }));
 
 // Mock minioService
@@ -54,8 +56,15 @@ import {
   updateProfile,
   updateInterests,
   toggleSearchable,
+  searchUsers,
   getProfileById,
 } from "../../../controllers/auth/usersController.js";
+import {
+  searchProfiles,
+  searchProfilesEnriched,
+  getCachedCities,
+  getCityCoordinates,
+} from "../../../services/meilisearch/meiliProfileService.js";
 
 describe("usersController", () => {
   let req, res;
@@ -483,6 +492,71 @@ describe("usersController", () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: "Erreur serveur" });
+    });
+  });
+
+  // ─── searchUsers ────────────────────────────────────────────────────────────
+
+  describe("searchUsers", () => {
+    it("parse filterSex + geoPoint depuis la query libre en mode anonyme", async () => {
+      req.user = null;
+      req.query = {
+        q: "yoga annecy",
+        filterCity: "Lyon,Paris",
+        filterSex: "female,male",
+        limit: "10",
+      };
+
+      getCachedCities.mockResolvedValue(["Annecy"]);
+      getCityCoordinates.mockReturnValue({ lat: 45.8992, lng: 6.1294 });
+      searchProfiles.mockResolvedValue({ hits: [], noRelevantResults: false });
+
+      await searchUsers(req, res);
+
+      expect(searchProfiles).toHaveBeenCalledWith(
+        "yoga",
+        expect.objectContaining({
+          limit: 10,
+          filterCity: ["Lyon", "Paris"],
+          filterSex: ["female", "male"],
+          geoPoint: { lat: 45.8992, lng: 6.1294 },
+        }),
+      );
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ noRelevantResults: false }),
+      );
+    });
+
+    it("utilise la recherche enrichie si utilisateur connecté", async () => {
+      req.query = { q: "randonnée" };
+
+      const searcherProfile = createMockProfile({
+        id: 42,
+        user_id: 1,
+        User: createMockUser({ id: 1, location: "Annecy" }),
+        Interests: [createMockInterest({ name: "Trail" })],
+      });
+
+      Profile.findOne.mockResolvedValue(searcherProfile);
+      getCachedCities.mockResolvedValue([]);
+      searchProfilesEnriched.mockResolvedValue({
+        hits: [{ id: 100, image_url: "profiles/pic.jpg" }],
+        noRelevantResults: false,
+      });
+
+      await searchUsers(req, res);
+
+      expect(searchProfilesEnriched).toHaveBeenCalledWith(
+        expect.objectContaining({ location: "Annecy" }),
+        "randonnée",
+        expect.objectContaining({ geoPoint: null }),
+      );
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noRelevantResults: false,
+          hits: [expect.objectContaining({ id: 100 })],
+        }),
+      );
     });
   });
 });
