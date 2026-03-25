@@ -280,14 +280,10 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
 // Construit une requête enrichie à partir du profil du chercheur + sa requête
 const buildEnrichedQuery = (searcherProfile, userQuery) => {
   // ── Cas 1 : l'utilisateur a tapé quelque chose ────────────────────────────
-  // Garder la requête précise + léger contexte d'intérêts pour ne pas diluer
+  // Garder la requête exacte sans enrichissement pour éviter de diluer
+  // la pertinence (ex: "cuisine niçoise" doit rester strictement localisée).
   if (userQuery) {
-    const parts = [userQuery];
-    if (searcherProfile?.interests?.length) {
-      // Juste 3 intérêts max pour orienter sans noyer le signal
-      parts.push(searcherProfile.interests.slice(0, 3).join(", "));
-    }
-    return parts.join(". ");
+    return userQuery;
   }
 
   // ── Cas 2 : mode "For You" (pas de requête) ───────────────────────────────
@@ -301,10 +297,6 @@ const buildEnrichedQuery = (searcherProfile, userQuery) => {
   const bioText = searcherProfile?.biography || searcherProfile?.bio;
   if (bioText) {
     sentences.push(`Je cherche des personnes compatibles avec quelqu'un qui : ${bioText.slice(0, 300)}`);
-  }
-
-  if (searcherProfile?.location) {
-    sentences.push(`Basé près de ${searcherProfile.location}.`);
   }
 
   // Fallback si profil vide → évite de renvoyer "" à Meilisearch

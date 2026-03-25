@@ -326,6 +326,11 @@ async function extractCitiesFromQuery(query) {
   const cities = await getCachedCities();
   const detectedCities = [];
   let cleanQuery = query;
+
+  // Alias d'adjectifs/variantes de ville courants dans les requêtes libres
+  const cityAliases = {
+    Nice: ["nicois", "nicoise", "niçois", "niçoise"],
+  };
   // Trier par longueur décroissante pour matcher "Aix-en-Provence" avant "Aix"
   const sorted = [...cities].sort((a, b) => b.length - a.length);
   for (const city of sorted) {
@@ -337,6 +342,21 @@ async function extractCitiesFromQuery(query) {
       cleanQuery = cleanQuery.replace(regex, " ").replace(/\s{2,}/g, " ").trim();
     }
   }
+
+  // Détection de villes implicites dans une forme adjectivale (ex: cuisine niçoise)
+  for (const [city, aliases] of Object.entries(cityAliases)) {
+    if (detectedCities.includes(city)) continue;
+    for (const alias of aliases) {
+      const escaped = alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      const regex = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, "i");
+      if (regex.test(cleanQuery)) {
+        detectedCities.push(city);
+        cleanQuery = cleanQuery.replace(regex, " ").replace(/\s{2,}/g, " ").trim();
+        break;
+      }
+    }
+  }
+
   return { cleanQuery, detectedCities };
 }
 
@@ -413,11 +433,13 @@ export const searchUsers = async (req, res) => {
           }
         : null;
 
-      const result = await searchProfilesEnriched(
-        profileData,
-        effectiveQuery,
-        options,
-      );
+      const result = effectiveQuery.trim()
+        ? await searchProfilesEnriched(
+            profileData,
+            effectiveQuery,
+            options,
+          )
+        : await searchProfilesService(effectiveQuery, options);
       // Exclure le profil du chercheur + résoudre les image_url (path → URL Minio)
       result.hits = result.hits
         .filter((hit) => hit.id !== searcherProfileId)
