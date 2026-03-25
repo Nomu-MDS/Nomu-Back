@@ -81,7 +81,7 @@ export const getCityCoordinates = (city) => {
 export const setupFilterableAttributes = async () => {
   try {
     const task = await index.updateSettings({
-      filterableAttributes: ["interests", "location", "city", "country", "gender"],
+      filterableAttributes: ["interests", "location", "city", "country", "gender", "_geo"],
       sortableAttributes: ["_geo"],
     });
     await meiliClient.waitForTask(task.taskUid);
@@ -202,6 +202,34 @@ function buildFilter(options) {
   return parts.length ? parts.join(" AND ") : undefined;
 }
 
+function removeGeoRadiusFromFilter(filter) {
+  if (!filter) return undefined;
+  const parts = String(filter)
+    .split(" AND ")
+    .filter((part) => !part.trim().startsWith("_geoRadius("));
+  return parts.length ? parts.join(" AND ") : undefined;
+}
+
+async function searchWithGeoFallback(query, searchParams) {
+  try {
+    return await index.search(query, searchParams);
+  } catch (error) {
+    const isGeoSettingsError =
+      (error.code === "invalid_search_filter" || error.code === "invalid_search_sort") &&
+      (searchParams.filter?.includes("_geoRadius(") || Array.isArray(searchParams.sort));
+
+    if (!isGeoSettingsError) throw error;
+
+    // Fallback défensif: si _geo n'est pas encore prêt côté settings,
+    // relancer une recherche sans contrainte/tri geo au lieu de renvoyer 500.
+    const fallbackParams = { ...searchParams };
+    fallbackParams.filter = removeGeoRadiusFromFilter(fallbackParams.filter);
+    delete fallbackParams.sort;
+
+    return await index.search(query, fallbackParams);
+  }
+}
+
 // Filtre les résultats sous le seuil de pertinence (uniquement si query non vide)
 function applyRelevanceThreshold(hits, hasQuery) {
   if (!hasQuery) return { hits, noRelevantResults: false };
@@ -238,7 +266,7 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
       searchParams.sort = [`_geoPoint(${options.geoPoint.lat},${options.geoPoint.lng}):asc`];
     }
 
-    const result = await index.search(enrichedQuery, searchParams);
+    const result = await searchWithGeoFallback(enrichedQuery, searchParams);
     const { hits, noRelevantResults } = applyRelevanceThreshold(result.hits, !!query);
     return { ...result, hits, noRelevantResults };
   } catch (error) {
@@ -308,7 +336,7 @@ export const searchProfiles = async (query, options = {}) => {
       searchParams.sort = [`_geoPoint(${options.geoPoint.lat},${options.geoPoint.lng}):asc`];
     }
 
-    const result = await index.search(query, searchParams);
+    const result = await searchWithGeoFallback(query, searchParams);
     const { hits, noRelevantResults } = applyRelevanceThreshold(result.hits, !!query);
     return { ...result, hits, noRelevantResults };
   } catch (error) {

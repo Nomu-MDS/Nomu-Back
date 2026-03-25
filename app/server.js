@@ -230,7 +230,7 @@ const setupMeilisearchAI = async () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${MEILI_API_KEY}`,
         },
-        body: JSON.stringify(["interests", "location", "country", "city", "gender"]),
+        body: JSON.stringify(["interests", "location", "country", "city", "gender", "_geo"]),
       },
     );
 
