@@ -21,6 +21,7 @@ import reportsRoutes from "./routes/reports/index.js";
 import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession, authenticateOptional } from "./middleware/authMiddleware.js";
 import { initBuckets } from "./config/minio.js";
+import { meiliClient } from "./config/meilisearch.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
 import { indexProfiles, setupFilterableAttributes } from "./services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
@@ -157,6 +158,14 @@ const setupMeilisearchAI = async () => {
   const MEILI_HOST = process.env.MEILI_HOST || "http://localhost:7700";
   const MEILI_API_KEY = process.env.MEILI_API_KEY;
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const waitTask = async (response, label) => {
+    const payload = await response.json().catch(() => null);
+    if (payload?.taskUid) {
+      await meiliClient.waitForTask(payload.taskUid);
+    } else {
+      console.warn(`⚠️  ${label}: taskUid manquant, attente explicite impossible.`);
+    }
+  };
 
   if (!OPENAI_API_KEY) {
     console.log(
@@ -181,6 +190,7 @@ const setupMeilisearchAI = async () => {
       const error = await vectorResponse.text();
       throw new Error(`Vector store: ${error}`);
     }
+    await waitTask(vectorResponse, "Vector store");
 
     // 2. Configurer l'embedder OpenAI (inclut les intérêts)
     const embedderConfig = {
@@ -209,9 +219,10 @@ const setupMeilisearchAI = async () => {
       const error = await embedderResponse.text();
       throw new Error(`Embedder: ${error}`);
     }
+    await waitTask(embedderResponse, "Embedder");
 
     // 3. Configurer les filterable attributes pour filtrer par intérêts
-    await fetch(
+    const filterResponse = await fetch(
       `${MEILI_HOST}/indexes/${process.env.MEILI_INDEX_PROFILES}/settings/filterable-attributes`,
       {
         method: "PUT",
@@ -222,6 +233,12 @@ const setupMeilisearchAI = async () => {
         body: JSON.stringify(["interests", "location", "country", "city", "gender"]),
       },
     );
+
+    if (!filterResponse.ok) {
+      const error = await filterResponse.text();
+      throw new Error(`Filterable attributes: ${error}`);
+    }
+    await waitTask(filterResponse, "Filterable attributes");
 
     console.log("✅ Meilisearch AI configuré (recherche sémantique activée)");
   } catch (err) {
@@ -270,10 +287,8 @@ const start = async () => {
     }
 
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre Meilisearch
     await setupMeilisearchAI();
     await setupFilterableAttributes();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
     // Indexation initiale des profils au démarrage
     try {

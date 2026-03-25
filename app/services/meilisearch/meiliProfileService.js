@@ -80,10 +80,11 @@ export const getCityCoordinates = (city) => {
 // Met à jour les attributs filtrables + triables de l'index
 export const setupFilterableAttributes = async () => {
   try {
-    await index.updateSettings({
+    const task = await index.updateSettings({
       filterableAttributes: ["interests", "location", "city", "country", "gender"],
       sortableAttributes: ["_geo"],
     });
+    await meiliClient.waitForTask(task.taskUid);
   } catch (error) {
     if (error.code !== "index_not_found") {
       console.error("[Meilisearch] Erreur setup filterable attributes:", error);
@@ -93,6 +94,42 @@ export const setupFilterableAttributes = async () => {
 
 function escapeFilterValue(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function normalizeForGender(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function expandGenderValues(values = []) {
+  const variants = {
+    female: ["female", "femme", "woman", "women"],
+    male: ["male", "homme", "man", "men"],
+    non_binary: ["non_binary", "non-binary", "non binary", "nonbinaire", "non-binaire", "nb"],
+  };
+
+  const expanded = new Set();
+  for (const raw of values) {
+    const normalized = normalizeForGender(raw).replace(/\s+/g, "_").replace(/-/g, "_");
+    if (normalized === "female" || normalized === "femme" || normalized === "woman" || normalized === "women") {
+      variants.female.forEach((v) => expanded.add(v));
+      continue;
+    }
+    if (normalized === "male" || normalized === "homme" || normalized === "man" || normalized === "men") {
+      variants.male.forEach((v) => expanded.add(v));
+      continue;
+    }
+    if (normalized === "non_binary" || normalized === "nonbinaire" || normalized === "nb") {
+      variants.non_binary.forEach((v) => expanded.add(v));
+      continue;
+    }
+    expanded.add(String(raw).trim());
+  }
+
+  return Array.from(expanded).filter(Boolean);
 }
 
 // Cache des villes indexées dans Meilisearch (refresh toutes les 30 min)
@@ -144,10 +181,22 @@ function buildFilter(options) {
   }
 
   if (options.filterSex?.length) {
-    const sexFilter = options.filterSex
+    const sexFilter = expandGenderValues(options.filterSex)
       .map(s => `gender = "${escapeFilterValue(s)}"`)
       .join(" OR ");
-    parts.push(`(${sexFilter})`);
+    if (sexFilter) parts.push(`(${sexFilter})`);
+  }
+
+  if (
+    options.geoPoint &&
+    Number.isFinite(options.geoPoint.lat) &&
+    Number.isFinite(options.geoPoint.lng) &&
+    Number.isFinite(options.geoMaxDistanceMeters) &&
+    options.geoMaxDistanceMeters > 0
+  ) {
+    parts.push(
+      `_geoRadius(${options.geoPoint.lat}, ${options.geoPoint.lng}, ${Math.trunc(options.geoMaxDistanceMeters)})`,
+    );
   }
 
   return parts.length ? parts.join(" AND ") : undefined;
@@ -157,7 +206,7 @@ function buildFilter(options) {
 function applyRelevanceThreshold(hits, hasQuery) {
   if (!hasQuery) return { hits, noRelevantResults: false };
   const filtered = hits.filter(h => (h._rankingScore ?? 1) >= RELEVANCE_THRESHOLD);
-  const noRelevantResults = hits.length > 0 && filtered.length === 0;
+  const noRelevantResults = filtered.length === 0;
   return { hits: filtered, noRelevantResults };
 }
 
