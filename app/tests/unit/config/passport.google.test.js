@@ -59,7 +59,6 @@ import { User, Profile, Wallet } from "../../../models/index.js";
 describe("passport Google strategy", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    vi.resetModules();
     process.env.GOOGLE_CLIENT_ID = "web-client";
     process.env.GOOGLE_CLIENT_SECRET = "web-secret";
     process.env.GOOGLE_CALLBACK_URL = "http://localhost:3001/auth/google/callback";

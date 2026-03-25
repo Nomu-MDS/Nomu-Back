@@ -10,7 +10,7 @@ export default (sequelize) => {
         biography: DataTypes.TEXT,
         country: DataTypes.STRING,
         city: DataTypes.STRING,
-        gender: DataTypes.STRING,
+        gender: DataTypes.STRING(50),
         image_url: DataTypes.STRING,
         is_searchable: { type: DataTypes.BOOLEAN, defaultValue: false },
     }, {

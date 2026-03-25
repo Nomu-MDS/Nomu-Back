@@ -498,20 +498,26 @@ describe("usersController", () => {
   // ─── searchUsers ────────────────────────────────────────────────────────────
 
   describe("searchUsers", () => {
-    it("parse filterSex + geoPoint depuis la query libre en mode anonyme", async () => {
+    it("priorise filterCity pour geoPoint et normalise le genre", async () => {
       req.user = null;
       req.query = {
         q: "yoga annecy",
         filterCity: "Lyon,Paris",
-        filterSex: "female,male",
+        filterGender: "femme,male",
         limit: "10",
       };
 
       getCachedCities.mockResolvedValue(["Annecy"]);
-      getCityCoordinates.mockReturnValue({ lat: 45.8992, lng: 6.1294 });
+      getCityCoordinates.mockImplementation((city) => {
+        if (city === "Lyon") return { lat: 45.764, lng: 4.8357 };
+        if (city === "Annecy") return { lat: 45.8992, lng: 6.1294 };
+        return null;
+      });
       searchProfiles.mockResolvedValue({ hits: [], noRelevantResults: false });
 
       await searchUsers(req, res);
+
+      expect(getCityCoordinates).toHaveBeenCalledWith("Lyon");
 
       expect(searchProfiles).toHaveBeenCalledWith(
         "yoga",
@@ -519,7 +525,8 @@ describe("usersController", () => {
           limit: 10,
           filterCity: ["Lyon", "Paris"],
           filterSex: ["female", "male"],
-          geoPoint: { lat: 45.8992, lng: 6.1294 },
+          geoPoint: { lat: 45.764, lng: 4.8357 },
+          geoMaxDistanceMeters: null,
         }),
       );
       expect(res.json).toHaveBeenCalledWith(

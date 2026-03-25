@@ -1871,6 +1871,22 @@ const users = [
 async function seed() {
   const force = process.argv.includes("--force");
 
+  const normalizeGender = (value) => {
+    if (!value) return null;
+    const normalized = String(value)
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "_")
+      .replace(/-/g, "_");
+
+    if (["female", "femme", "woman", "women"].includes(normalized)) return "female";
+    if (["male", "homme", "man", "men"].includes(normalized)) return "male";
+    if (["non_binary", "nonbinaire", "nb"].includes(normalized)) return "non_binary";
+    return normalized;
+  };
+
   try {
     await sequelize.authenticate();
     console.log("✅ DB connectée");
@@ -1915,6 +1931,7 @@ async function seed() {
         biography: profileData.biography,
         country: profileData.country,
         city: profileData.city,
+        gender: normalizeGender(profileData.gender),
         is_searchable: true,
       });
 
@@ -1937,6 +1954,7 @@ async function seed() {
         biography: fullProfile.biography,
         country: fullProfile.country,
         city: fullProfile.city,
+        gender: fullProfile.gender || "",
         interests: fullProfile.Interests?.map((i) => i.name) || [],
       });
 

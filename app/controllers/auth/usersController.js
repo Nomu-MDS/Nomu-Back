@@ -10,6 +10,22 @@ import {
 } from "../../services/meilisearch/meiliProfileService.js";
 import minioService from "../../services/storage/minioService.js";
 
+function normalizeGender(value) {
+  if (value === undefined || value === null || value === "") return value;
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  if (["female", "femme", "woman", "women"].includes(normalized)) return "female";
+  if (["male", "homme", "man", "men"].includes(normalized)) return "male";
+  if (["non_binary", "nonbinaire", "nb"].includes(normalized)) return "non_binary";
+  return normalized;
+}
+
 export const createUser = async (req, res) => {
   try {
     const {
@@ -108,6 +124,7 @@ export const updateProfile = async (req, res) => {
       // Intérêts
       interest_ids,
     } = req.body;
+    const normalizedGender = normalizeGender(gender);
 
     // Normaliser image_url : stocker le path, pas l'URL complète
     // undefined = non fourni → ne pas écraser la valeur existante
@@ -130,12 +147,12 @@ export const updateProfile = async (req, res) => {
         biography,
         country,
         city,
-        gender,
+        gender: normalizedGender,
         image_url,
         is_searchable,
       });
     } else {
-      const profileFields = { bio, first_name, last_name, age, biography, country, city, gender, is_searchable };
+      const profileFields = { bio, first_name, last_name, age, biography, country, city, gender: normalizedGender, is_searchable };
       if (image_url !== undefined) profileFields.image_url = image_url;
       await profile.update(profileFields);
     }
@@ -150,7 +167,7 @@ export const updateProfile = async (req, res) => {
       is_searchable !== undefined ||
       (interest_ids && Array.isArray(interest_ids)) ||
       name || location || bio || first_name || last_name || age ||
-      biography || country || city || gender || image_url !== undefined;
+      biography || country || city || normalizedGender || image_url !== undefined;
 
     if (profileChanged) {
       const freshProfile = await Profile.findByPk(profile.id, {
@@ -342,25 +359,31 @@ export const searchUsers = async (req, res) => {
     const { cleanQuery, detectedCities } = await extractCitiesFromQuery(q);
     const explicitCities = filterCity ? filterCity.split(",") : [];
 
-    // Geo-sort basé sur la première ville détectée dans la query libre
-    const geoPoint = detectedCities.length > 0
-      ? getCityCoordinates(detectedCities[0])
-      : null;
+    // Geo-sort : priorité à la ville explicite (sidebar), sinon ville détectée dans la query libre
+    let geoPoint = null;
+    if (explicitCities.length > 0) {
+      geoPoint = getCityCoordinates(explicitCities[0]);
+    } else if (detectedCities.length > 0) {
+      geoPoint = getCityCoordinates(detectedCities[0]);
+    }
 
     const geoMaxDistanceMeters = geoPoint
-      ? parseInt(process.env.MEILI_GEO_MAX_DISTANCE_METERS || "250000", 10)
+      ? explicitCities.length > 0
+        ? null
+        : parseInt(process.env.MEILI_GEO_MAX_DISTANCE_METERS || "250000", 10)
       : null;
 
-    const normalizedGenderFilter = filterSex ?? filterGender;
+    const normalizedGenderFilter = (filterSex ?? filterGender)
+      ?.split(",")
+      .map((s) => normalizeGender(s))
+      .filter(Boolean);
 
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
       filterCity: explicitCities.length ? explicitCities : null,
       filterCountry: filterCountry ? filterCountry.split(",") : null,
-      filterSex: normalizedGenderFilter
-        ? normalizedGenderFilter.split(",")
-        : null,
+      filterSex: normalizedGenderFilter?.length ? normalizedGenderFilter : null,
       geoPoint,
       geoMaxDistanceMeters,
     };
