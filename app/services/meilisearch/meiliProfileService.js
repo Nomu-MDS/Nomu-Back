@@ -150,6 +150,18 @@ function buildFilter(options) {
     parts.push(`(${sexFilter})`);
   }
 
+  if (
+    options.geoPoint &&
+    Number.isFinite(options.geoPoint.lat) &&
+    Number.isFinite(options.geoPoint.lng) &&
+    Number.isFinite(options.geoMaxDistanceMeters) &&
+    options.geoMaxDistanceMeters > 0
+  ) {
+    parts.push(
+      `_geoRadius(${options.geoPoint.lat}, ${options.geoPoint.lng}, ${Math.trunc(options.geoMaxDistanceMeters)})`,
+    );
+  }
+
   return parts.length ? parts.join(" AND ") : undefined;
 }
 
@@ -157,7 +169,7 @@ function buildFilter(options) {
 function applyRelevanceThreshold(hits, hasQuery) {
   if (!hasQuery) return { hits, noRelevantResults: false };
   const filtered = hits.filter(h => (h._rankingScore ?? 1) >= RELEVANCE_THRESHOLD);
-  const noRelevantResults = hits.length > 0 && filtered.length === 0;
+  const noRelevantResults = filtered.length === 0;
   return { hits: filtered, noRelevantResults };
 }
 

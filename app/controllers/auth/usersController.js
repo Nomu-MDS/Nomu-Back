@@ -326,7 +326,15 @@ async function extractCitiesFromQuery(query) {
 // Recherche : enrichie si connecté, sinon simple
 export const searchUsers = async (req, res) => {
   try {
-    const { q, filterInterests, filterCity, filterCountry, filterSex, limit } = req.query;
+    const {
+      q,
+      filterInterests,
+      filterCity,
+      filterCountry,
+      filterSex,
+      filterGender,
+      limit,
+    } = req.query;
 
     // Extraire les villes depuis la query libre ("yoga annecy" → q="yoga", geoPoint=Annecy)
     // Ville détectée dans le texte → geo-ranking par proximité (Annecy d'abord, puis voisines)
@@ -339,13 +347,22 @@ export const searchUsers = async (req, res) => {
       ? getCityCoordinates(detectedCities[0])
       : null;
 
+    const geoMaxDistanceMeters = geoPoint
+      ? parseInt(process.env.MEILI_GEO_MAX_DISTANCE_METERS || "250000", 10)
+      : null;
+
+    const normalizedGenderFilter = filterSex ?? filterGender;
+
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
       filterCity: explicitCities.length ? explicitCities : null,
       filterCountry: filterCountry ? filterCountry.split(",") : null,
-      filterSex: filterSex ? filterSex.split(",") : null,
+      filterSex: normalizedGenderFilter
+        ? normalizedGenderFilter.split(",")
+        : null,
       geoPoint,
+      geoMaxDistanceMeters,
     };
 
     const effectiveQuery = cleanQuery || "";
