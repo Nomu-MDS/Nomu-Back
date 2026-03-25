@@ -33,6 +33,9 @@ export const clearIndex = async () => {
 };
 
 const RELEVANCE_THRESHOLD = 0.45;
+const RELEVANCE_THRESHOLD_FALLBACK = 0.28;
+const SEMANTIC_RATIO_WITH_QUERY = 0.5;
+const SEMANTIC_RATIO_FALLBACK = 0.9;
 
 // Coordonnées GPS des villes françaises (utilisées pour le geo-ranking)
 const CITY_COORDINATES = {
@@ -231,9 +234,9 @@ async function searchWithGeoFallback(query, searchParams) {
 }
 
 // Filtre les résultats sous le seuil de pertinence (uniquement si query non vide)
-function applyRelevanceThreshold(hits, hasQuery) {
+function applyRelevanceThreshold(hits, hasQuery, threshold = RELEVANCE_THRESHOLD) {
   if (!hasQuery) return { hits, noRelevantResults: false };
-  const filtered = hits.filter(h => (h._rankingScore ?? 1) >= RELEVANCE_THRESHOLD);
+  const filtered = hits.filter(h => (h._rankingScore ?? 1) >= threshold);
   const noRelevantResults = filtered.length === 0;
   return { hits: filtered, noRelevantResults };
 }
@@ -245,7 +248,7 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
 
     // Pas de requête → mode "For You" : full sémantique
     // Requête explicite → équilibré : le keyword match "vélo" / "paris" dans les champs texte
-    const semanticRatio = options.semanticRatio ?? (query ? 0.5 : 0.8);
+    const semanticRatio = options.semanticRatio ?? (query ? SEMANTIC_RATIO_WITH_QUERY : 0.8);
 
     const searchParams = {
       hybrid: {
@@ -268,6 +271,36 @@ export const searchProfilesEnriched = async (searcherProfile, query, options = {
 
     const result = await searchWithGeoFallback(enrichedQuery, searchParams);
     const { hits, noRelevantResults } = applyRelevanceThreshold(result.hits, !!query);
+
+    // Fallback sémantique: si une requête explicite ne renvoie rien de pertinent,
+    // relancer avec un ratio sémantique plus fort plutôt qu'un hack de synonymes.
+    if (query && noRelevantResults) {
+      const fallbackParams = {
+        ...searchParams,
+        hybrid: {
+          ...searchParams.hybrid,
+          semanticRatio: options.semanticFallbackRatio ?? SEMANTIC_RATIO_FALLBACK,
+        },
+        matchingStrategy: "last",
+      };
+
+      const fallbackResult = await searchWithGeoFallback(enrichedQuery, fallbackParams);
+      const relaxed = applyRelevanceThreshold(
+        fallbackResult.hits,
+        true,
+        options.relevanceThresholdFallback ?? RELEVANCE_THRESHOLD_FALLBACK,
+      );
+
+      if (relaxed.hits.length > 0) {
+        return {
+          ...fallbackResult,
+          hits: relaxed.hits,
+          noRelevantResults: false,
+          semanticFallbackUsed: true,
+        };
+      }
+    }
+
     return { ...result, hits, noRelevantResults };
   } catch (error) {
     if (error.code === "index_not_found") {
@@ -313,7 +346,7 @@ export const searchProfiles = async (query, options = {}) => {
     const searchParams = {
       hybrid: {
         embedder: "profiles-openai",
-        semanticRatio: options.semanticRatio || 0.5,
+        semanticRatio: options.semanticRatio || SEMANTIC_RATIO_WITH_QUERY,
       },
       limit: options.limit || 20,
       attributesToRetrieve: ["id", "user_id", "name", "bio", "city", "country", "location", "interests", "image_url", "gender"],
@@ -330,6 +363,34 @@ export const searchProfiles = async (query, options = {}) => {
 
     const result = await searchWithGeoFallback(query, searchParams);
     const { hits, noRelevantResults } = applyRelevanceThreshold(result.hits, !!query);
+
+    if (query && noRelevantResults) {
+      const fallbackParams = {
+        ...searchParams,
+        hybrid: {
+          ...searchParams.hybrid,
+          semanticRatio: options.semanticFallbackRatio ?? SEMANTIC_RATIO_FALLBACK,
+        },
+        matchingStrategy: "last",
+      };
+
+      const fallbackResult = await searchWithGeoFallback(query, fallbackParams);
+      const relaxed = applyRelevanceThreshold(
+        fallbackResult.hits,
+        true,
+        options.relevanceThresholdFallback ?? RELEVANCE_THRESHOLD_FALLBACK,
+      );
+
+      if (relaxed.hits.length > 0) {
+        return {
+          ...fallbackResult,
+          hits: relaxed.hits,
+          noRelevantResults: false,
+          semanticFallbackUsed: true,
+        };
+      }
+    }
+
     return { ...result, hits, noRelevantResults };
   } catch (error) {
     if (error.code === "index_not_found") {
