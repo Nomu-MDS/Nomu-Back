@@ -36,6 +36,7 @@ const RELEVANCE_THRESHOLD = 0.45;
 const RELEVANCE_THRESHOLD_FALLBACK = 0.28;
 const SEMANTIC_RATIO_WITH_QUERY = 0.5;
 const SEMANTIC_RATIO_FALLBACK = 0.9;
+const MIN_ADAPTIVE_THRESHOLD = 0.08;
 
 // Coordonnées GPS des villes françaises (utilisées pour le geo-ranking)
 const CITY_COORDINATES = {
@@ -236,7 +237,16 @@ async function searchWithGeoFallback(query, searchParams) {
 // Filtre les résultats sous le seuil de pertinence (uniquement si query non vide)
 function applyRelevanceThreshold(hits, hasQuery, threshold = RELEVANCE_THRESHOLD) {
   if (!hasQuery) return { hits, noRelevantResults: false };
-  const filtered = hits.filter(h => (h._rankingScore ?? 1) >= threshold);
+
+  // Seuil adaptatif: conserve un garde-fou qualité, mais évite de supprimer
+  // des résultats sémantiques utiles quand les scores absolus sont bas.
+  const topScore = hits[0]?._rankingScore ?? 0;
+  const adaptiveThreshold = Math.max(
+    MIN_ADAPTIVE_THRESHOLD,
+    Math.min(threshold, topScore * 0.6),
+  );
+
+  const filtered = hits.filter(h => (h._rankingScore ?? 1) >= adaptiveThreshold);
   const noRelevantResults = filtered.length === 0;
   return { hits: filtered, noRelevantResults };
 }
