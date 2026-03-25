@@ -5,7 +5,7 @@
 //   - app/server.js                   (réindexation automatique toutes les 2h)
 
 import { Profile, User, Interest } from "../../models/index.js";
-import { indexProfiles, clearIndex } from "./meiliProfileService.js";
+import { indexProfiles, clearIndex, getCityCoordinates } from "./meiliProfileService.js";
 
 export const reindexAllProfiles = async () => {
   // Étape 1 : Vider complètement l'index Meilisearch pour supprimer les profils obsolètes
@@ -32,18 +32,24 @@ export const reindexAllProfiles = async () => {
   }
 
   // Étape 3 : Formater les données pour Meilisearch
-  const profilesData = profiles.map((profile) => ({
-    id: profile.id,
-    user_id: profile.user_id,
-    name: profile.User?.name || "",
-    location: profile.User?.location || profile.city || "",
-    bio: profile.bio || "",
-    biography: profile.biography || "",
-    country: profile.country || "",
-    city: profile.city || "",
-    interests: profile.Interests?.map((i) => i.name) || [],
-    image_url: profile.image_url || "",
-  }));
+  const profilesData = profiles.map((profile) => {
+    const city = profile.city || "";
+    const geo = getCityCoordinates(city);
+    return {
+      id: profile.id,
+      user_id: profile.user_id,
+      name: profile.User?.name || "",
+      location: profile.User?.location || city,
+      bio: profile.bio || "",
+      biography: profile.biography || "",
+      country: profile.country || "",
+      city,
+      gender: profile.gender || "",
+      interests: profile.Interests?.map((i) => i.name) || [],
+      image_url: profile.image_url || "",
+      ...(geo && { _geo: geo }),
+    };
+  });
 
   // Étape 4 : Indexer les profils actifs
   await indexProfiles(profilesData);
