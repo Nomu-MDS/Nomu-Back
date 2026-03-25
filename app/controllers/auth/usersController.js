@@ -466,17 +466,33 @@ export const getProfileById = async (req, res) => {
       return res.status(400).json({ error: "ID profil invalide" });
     }
 
-    // Récupérer le profil avec l'utilisateur et les intérêts
-    const profile = await Profile.findByPk(profileId, {
-      include: [
-        {
-          model: User,
-          attributes: { exclude: ["password", "email"] },
-        },
-        Interest,
-      ],
+    const includeOptions = [
+      {
+        model: User,
+        attributes: { exclude: ["password", "email"] },
+      },
+      Interest,
+    ];
+
+    // Récupérer d'abord par profile.id
+    let profile = await Profile.findByPk(profileId, {
+      include: includeOptions,
     });
 
+    // Compatibilité défensive: certains clients envoient user_id.
+    // Si profile.id introuvable, retenter par user_id.
+    if (!profile && typeof Profile.findOne === "function") {
+      try {
+        profile = await Profile.findOne({
+          where: { user_id: profileId },
+          include: includeOptions,
+        });
+      } catch (fallbackErr) {
+        console.warn("[getProfileById] fallback user_id lookup failed:", fallbackErr?.message || fallbackErr);
+      }
+    }
+
+    // Profil introuvable
     if (!profile) {
       return res.status(404).json({ error: "Profil non trouvé" });
     }
