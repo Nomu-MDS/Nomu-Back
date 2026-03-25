@@ -22,7 +22,7 @@ import adminReportsRoutes from "./routes/reports/admin.js";
 import { authenticateSession, authenticateOptional } from "./middleware/authMiddleware.js";
 import { initBuckets } from "./config/minio.js";
 import { sequelize, User, Profile, Interest } from "./models/index.js";
-import { indexProfiles } from "./services/meilisearch/meiliProfileService.js";
+import { indexProfiles, setupFilterableAttributes } from "./services/meilisearch/meiliProfileService.js";
 import { reindexAllProfiles } from "./services/meilisearch/reindexService.js";
 
 console.log(
@@ -219,7 +219,7 @@ const setupMeilisearchAI = async () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${MEILI_API_KEY}`,
         },
-        body: JSON.stringify(["interests", "location", "country", "city"]),
+        body: JSON.stringify(["interests", "location", "country", "city", "gender"]),
       },
     );
 
@@ -272,6 +272,7 @@ const start = async () => {
     // Configurer Meilisearch AI AVANT d'indexer les utilisateurs
     await new Promise((resolve) => setTimeout(resolve, 2000)); // Attendre Meilisearch
     await setupMeilisearchAI();
+    await setupFilterableAttributes();
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Laisser l'embedder se configurer
 
     // Indexation initiale des profils au démarrage

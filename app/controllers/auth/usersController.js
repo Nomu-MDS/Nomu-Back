@@ -5,6 +5,8 @@ import {
   removeProfileFromIndex,
   searchProfilesEnriched,
   searchProfiles as searchProfilesService,
+  getCachedCities,
+  getCityCoordinates,
 } from "../../services/meilisearch/meiliProfileService.js";
 import minioService from "../../services/storage/minioService.js";
 
@@ -100,6 +102,7 @@ export const updateProfile = async (req, res) => {
       biography,
       country,
       city,
+      gender,
       image_url: rawImageUrl,
       is_searchable,
       // Intérêts
@@ -131,7 +134,7 @@ export const updateProfile = async (req, res) => {
         is_searchable,
       });
     } else {
-      const profileFields = { bio, first_name, last_name, age, biography, country, city, is_searchable };
+      const profileFields = { bio, first_name, last_name, age, biography, country, city, gender, is_searchable };
       if (image_url !== undefined) profileFields.image_url = image_url;
       await profile.update(profileFields);
     }
@@ -146,7 +149,7 @@ export const updateProfile = async (req, res) => {
       is_searchable !== undefined ||
       (interest_ids && Array.isArray(interest_ids)) ||
       name || location || bio || first_name || last_name || age ||
-      biography || country || city || image_url !== undefined;
+      biography || country || city || gender || image_url !== undefined;
 
     if (profileChanged) {
       const freshProfile = await Profile.findByPk(profile.id, {
@@ -154,18 +157,22 @@ export const updateProfile = async (req, res) => {
       });
       if (freshProfile.is_searchable) {
         try {
+          const _freshCity = freshProfile.city || "";
+          const _freshGeo = getCityCoordinates(_freshCity);
           await indexProfiles([
             {
               id: freshProfile.id,
               user_id: freshProfile.user_id,
               name: freshProfile.User?.name || "",
-              location: freshProfile.User?.location || freshProfile.city || "",
+              location: freshProfile.User?.location || _freshCity,
               bio: freshProfile.bio || "",
               biography: freshProfile.biography || "",
               country: freshProfile.country || "",
-              city: freshProfile.city || "",
+              city: _freshCity,
+              gender: freshProfile.gender || "",
               interests: freshProfile.Interests?.map((i) => i.name) || [],
               image_url: freshProfile.image_url || "",
+              ...(_freshGeo && { _geo: _freshGeo }),
             },
           ]);
         } catch (e) {
@@ -219,18 +226,22 @@ export const updateInterests = async (req, res) => {
       const updatedProfile = await Profile.findByPk(profile.id, {
         include: [User, Interest],
       });
+      const _iCity = updatedProfile.city || "";
+      const _iGeo = getCityCoordinates(_iCity);
       await indexProfiles([
         {
           id: updatedProfile.id,
           user_id: updatedProfile.user_id,
           name: updatedProfile.User?.name || "",
-          location: updatedProfile.User?.location || updatedProfile.city || "",
+          location: updatedProfile.User?.location || _iCity,
           bio: updatedProfile.bio || "",
           biography: updatedProfile.biography || "",
           country: updatedProfile.country || "",
-          city: updatedProfile.city || "",
+          city: _iCity,
+          gender: updatedProfile.gender || "",
           interests: updatedProfile.Interests?.map((i) => i.name) || [],
           image_url: updatedProfile.image_url || "",
+          ...(_iGeo && { _geo: _iGeo }),
         },
       ]);
     }
@@ -262,18 +273,22 @@ export const toggleSearchable = async (req, res) => {
       const updatedProfile = await Profile.findByPk(profile.id, {
         include: [User, Interest],
       });
+      const _tCity = updatedProfile.city || "";
+      const _tGeo = getCityCoordinates(_tCity);
       await indexProfiles([
         {
           id: updatedProfile.id,
           user_id: updatedProfile.user_id,
           name: updatedProfile.User?.name || "",
-          location: updatedProfile.User?.location || updatedProfile.city || "",
+          location: updatedProfile.User?.location || _tCity,
           bio: updatedProfile.bio || "",
           biography: updatedProfile.biography || "",
           country: updatedProfile.country || "",
-          city: updatedProfile.city || "",
+          city: _tCity,
+          gender: updatedProfile.gender || "",
           interests: updatedProfile.Interests?.map((i) => i.name) || [],
           image_url: updatedProfile.image_url || "",
+          ...(_tGeo && { _geo: _tGeo }),
         },
       ]);
     } else {
@@ -287,16 +302,52 @@ export const toggleSearchable = async (req, res) => {
   }
 };
 
+// Extrait les villes depuis la query libre en les comparant aux villes indexées dans Meilisearch
+async function extractCitiesFromQuery(query) {
+  if (!query) return { cleanQuery: query, detectedCities: [] };
+  const cities = await getCachedCities();
+  const detectedCities = [];
+  let cleanQuery = query;
+  // Trier par longueur décroissante pour matcher "Aix-en-Provence" avant "Aix"
+  const sorted = [...cities].sort((a, b) => b.length - a.length);
+  for (const city of sorted) {
+    const escaped = city.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    const regex = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, "i");
+    if (regex.test(cleanQuery)) {
+      // Retrouver la casing canonique depuis l'index
+      detectedCities.push(city);
+      cleanQuery = cleanQuery.replace(regex, " ").replace(/\s{2,}/g, " ").trim();
+    }
+  }
+  return { cleanQuery, detectedCities };
+}
+
 // Recherche : enrichie si connecté, sinon simple
 export const searchUsers = async (req, res) => {
   try {
-    const { q, filterInterests, filterCity, filterCountry, limit } = req.query;
+    const { q, filterInterests, filterCity, filterCountry, filterSex, limit } = req.query;
+
+    // Extraire les villes depuis la query libre ("yoga annecy" → q="yoga", geoPoint=Annecy)
+    // Ville détectée dans le texte → geo-ranking par proximité (Annecy d'abord, puis voisines)
+    // Ville sélectionnée dans le filtre sidebar → hard filter (uniquement cette ville)
+    const { cleanQuery, detectedCities } = await extractCitiesFromQuery(q);
+    const explicitCities = filterCity ? filterCity.split(",") : [];
+
+    // Geo-sort basé sur la première ville détectée dans la query libre
+    const geoPoint = detectedCities.length > 0
+      ? getCityCoordinates(detectedCities[0])
+      : null;
+
     const options = {
       limit: limit ? parseInt(limit) : 20,
       filterInterests: filterInterests ? filterInterests.split(",") : null,
-      filterCity: filterCity ? filterCity.split(",") : null,
+      filterCity: explicitCities.length ? explicitCities : null,
       filterCountry: filterCountry ? filterCountry.split(",") : null,
+      filterSex: filterSex ? filterSex.split(",") : null,
+      geoPoint,
     };
+
+    const effectiveQuery = cleanQuery || "";
 
     // Si connecté, enrichir avec le profil du chercheur
     const searcherId = req.user?.dbUser?.id;
@@ -323,20 +374,20 @@ export const searchUsers = async (req, res) => {
 
       const result = await searchProfilesEnriched(
         profileData,
-        q || "",
+        effectiveQuery,
         options,
       );
       // Exclure le profil du chercheur + résoudre les image_url (path → URL Minio)
       result.hits = result.hits
         .filter((hit) => hit.id !== searcherProfileId)
         .map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
-      return res.json(result);
+      return res.json({ ...result, noRelevantResults: result.noRelevantResults ?? false });
     }
 
     // Sinon recherche simple
-    const result = await searchProfilesService(q || "", options);
+    const result = await searchProfilesService(effectiveQuery, options);
     result.hits = result.hits.map((hit) => ({ ...hit, image_url: minioService.resolveUrl(hit.image_url) }));
-    res.json(result);
+    res.json({ ...result, noRelevantResults: result.noRelevantResults ?? false });
   } catch (err) {
     console.error("Erreur searchUsers:", err);
     res.status(500).json({ error: "Erreur recherche" });
